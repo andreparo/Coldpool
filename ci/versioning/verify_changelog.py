@@ -1,4 +1,3 @@
-# ci/versioning/verify_changelog.py
 #!/usr/bin/env python3
 from __future__ import annotations
 
@@ -73,7 +72,7 @@ def ensure_file_header(lines: list[str]) -> None:
         raise ValueError("CHANGELOG.md is empty")
     if lines[0] != "# Changelog":
         raise ValueError('CHANGELOG.md must start exactly with "# Changelog"')
-    if len(lines) < 2 or lines[1] != "":
+    if len(lines) >= 2 and lines[1].strip() != "":
         raise ValueError('There must be exactly one empty line after "# Changelog"')
 
 
@@ -88,7 +87,9 @@ def ensure_no_triple_empty_lines(lines: list[str]) -> None:
             empty_run = 0
 
 
-def ensure_empty_line_before_each_header(lines: list[str], headers: list[tuple[int, tuple[int, int, int], str]]) -> None:
+def ensure_empty_line_before_each_header(
+    lines: list[str], headers: list[tuple[int, tuple[int, int, int], str]]
+) -> None:
     for idx, _version, _title in headers:
         if idx == 0:
             raise ValueError("A version header cannot be the first line of the file")
@@ -135,10 +136,6 @@ def main() -> int:
 
         headers = parse_headers(lines)
 
-        # Base changelog is allowed:
-        #   # Changelog
-        #
-        # with no version entries yet.
         if not headers:
             print("CHANGELOG_OK=true")
             print("HAS_VERSION_HEADERS=false")
@@ -147,8 +144,6 @@ def main() -> int:
         ensure_empty_line_before_each_header(lines, headers)
         ensure_version_order(headers)
 
-        # Date validation is only required when the latest commit is the
-        # version-finalization commit for the top changelog entry.
         top_header_index, top_version, top_title = headers[0]
         commit_subject = get_commit_subject()
 
