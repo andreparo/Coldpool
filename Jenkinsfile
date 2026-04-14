@@ -14,10 +14,19 @@ pipeline {
                     cat ci_version.env
                 '''
                 script {
-                    def data = readProperties file: 'ci_version.env'
-                    env.VERSION = data.VERSION
-                    env.SHORT_SHA = data.SHORT_SHA
-                    env.IS_STABLE = data.IS_STABLE
+                    def envText = readFile('ci_version.env').trim()
+                    def data = [:]
+
+                    envText.split('\n').each { line ->
+                        def parts = line.split('=', 2)
+                        if (parts.length == 2) {
+                            data[parts[0].trim()] = parts[1].trim()
+                        }
+                    }
+
+                    env.VERSION = data['VERSION']
+                    env.SHORT_SHA = data['SHORT_SHA']
+                    env.IS_STABLE = data['IS_STABLE']
 
                     currentBuild.displayName = "${env.VERSION} | #${env.BUILD_NUMBER} | ${env.SHORT_SHA}"
                 }
