@@ -73,7 +73,7 @@ def ensure_file_header(lines: list[str]) -> None:
         raise ValueError("CHANGELOG.md is empty")
     if lines[0] != "# Changelog":
         raise ValueError('CHANGELOG.md must start exactly with "# Changelog"')
-    if len(lines) < 2 or lines[1] != "":
+    if len(lines) >= 2 and lines[1] != "":
         raise ValueError('There must be exactly one empty line after "# Changelog"')
 
 
