@@ -14,7 +14,7 @@ VERSION_HEADER_RE = re.compile(r"^## v(\d+)\.(\d+)\.(\d+) - (.+)$", re.MULTILINE
 
 def run_git(*args: str) -> str:
     result = subprocess.run(
-        ["git", *args], 
+        ["git", *args],
         check=True,
         capture_output=True,
         text=True,
@@ -27,7 +27,7 @@ def get_short_sha() -> str:
 
 
 def get_commit_subject() -> str:
-    return run_git("log", "-1", "--pretty=%s")
+    return run_git("log", "-1", "--pretty=%s").strip()
 
 
 def get_commit_count() -> int:
@@ -50,8 +50,12 @@ def parse_version_headers(changelog_text: str) -> list[tuple[int, int, int, str]
 
 def latest_stable_version(changelog_text: str) -> tuple[int, int, int]:
     headers = parse_version_headers(changelog_text)
+
+    # No stable versions in changelog yet:
+    # treat v0.0.0 as the existing internal baseline.
     if not headers:
-        raise ValueError("No stable version found in CHANGELOG.md")
+        return (0, 0, 0)
+
     major, minor, patch, _title = headers[0]
     return major, minor, patch
 
@@ -63,7 +67,7 @@ def top_entry_matches_commit(changelog_text: str, commit_subject: str) -> tuple[
 
     major, minor, patch, title = headers[0]
     version = f"v{major}.{minor}.{patch}"
-    return title == commit_subject.strip(), version
+    return title == commit_subject, version
 
 
 def main() -> int:
