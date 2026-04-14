@@ -6,11 +6,11 @@ import datetime as dt
 import re
 import subprocess
 import sys
-from pathlib import Path 
+from pathlib import Path
 
 
 CHANGELOG_PATH = Path("CHANGELOG.md")
-HEADER_RE = re.compile(r"^## v(\d+)\.(\d+)\.(\d+) - (.+)$", re.MULTILINE)
+HEADER_RE = re.compile(r"^## v(\d+)\.(\d+)\.(\d+) - (.+)$")
 DATE_RE = re.compile(r"^\d{1,2} [A-Z][a-z]{2}\. \d{4}$")
 
 
@@ -73,7 +73,7 @@ def ensure_file_header(lines: list[str]) -> None:
         raise ValueError("CHANGELOG.md is empty")
     if lines[0] != "# Changelog":
         raise ValueError('CHANGELOG.md must start exactly with "# Changelog"')
-    if len(lines) >= 2 and lines[1] != "":
+    if len(lines) < 2 or lines[1] != "":
         raise ValueError('There must be exactly one empty line after "# Changelog"')
 
 
@@ -88,6 +88,14 @@ def ensure_no_triple_empty_lines(lines: list[str]) -> None:
             empty_run = 0
 
 
+def ensure_empty_line_before_each_header(lines: list[str], headers: list[tuple[int, tuple[int, int, int], str]]) -> None:
+    for idx, _version, _title in headers:
+        if idx == 0:
+            raise ValueError("A version header cannot be the first line of the file")
+        if lines[idx - 1] != "":
+            raise ValueError("There must be exactly one empty line before each version header")
+
+
 def ensure_version_order(headers: list[tuple[int, tuple[int, int, int], str]]) -> None:
     versions = [version for _idx, version, _title in headers]
     for i in range(len(versions) - 1):
@@ -95,34 +103,28 @@ def ensure_version_order(headers: list[tuple[int, tuple[int, int, int], str]]) -
             raise ValueError("Changelog versions must be ordered newest first")
 
 
-def ensure_top_entry_date(lines: list[str], top_header_index: int) -> None:
-    for idx in range(top_header_index + 1, len(lines)):
+def find_first_meaningful_line_after(lines: list[str], start_idx: int) -> tuple[int, str] | None:
+    for idx in range(start_idx + 1, len(lines)):
         line = lines[idx].strip()
-        if not line:
-            continue
-        if not DATE_RE.match(line):
-            raise ValueError(
-                "The first meaningful line after the top version header must be a date like '3 Dec. 2025'"
-            )
-        expected = expected_today_string()
-        if line != expected:
-            raise ValueError(f"Top changelog date must be today's date: {expected}")
-        return
-
-    raise ValueError("Top version entry is missing its date line")
+        if line:
+            return idx, line
+    return None
 
 
-def ensure_top_entry_matches_commit(headers: list[tuple[int, tuple[int, int, int], str]]) -> None:
-    if not headers:
-        raise ValueError("CHANGELOG.md must contain at least one version entry")
-    _idx, version, title = headers[0]
-    commit_subject = get_commit_subject()
-    if title != commit_subject:
-        version_str = f"v{version[0]}.{version[1]}.{version[2]}"
+def ensure_top_entry_date(lines: list[str], top_header_index: int) -> None:
+    result = find_first_meaningful_line_after(lines, top_header_index)
+    if result is None:
+        raise ValueError("Top version entry is missing its date line")
+
+    _idx, line = result
+    if not DATE_RE.match(line):
         raise ValueError(
-            f'Top changelog title for {version_str} must exactly match commit message. '
-            f'Expected "{title}", got "{commit_subject}"'
+            "The first meaningful line after the top version header must be a date like '3 Dec. 2025'"
         )
+
+    expected = expected_today_string()
+    if line != expected:
+        raise ValueError(f"Top changelog date must be today's date: {expected}")
 
 
 def main() -> int:
@@ -132,15 +134,34 @@ def main() -> int:
         ensure_no_triple_empty_lines(lines)
 
         headers = parse_headers(lines)
+
+        # Base changelog is allowed:
+        #   # Changelog
+        #
+        # with no version entries yet.
         if not headers:
-            raise ValueError("No version headers found in CHANGELOG.md")
+            print("CHANGELOG_OK=true")
+            print("HAS_VERSION_HEADERS=false")
+            return 0
 
+        ensure_empty_line_before_each_header(lines, headers)
         ensure_version_order(headers)
-        top_header_index, _top_version, _top_title = headers[0]
-        ensure_top_entry_date(lines, top_header_index)
-        ensure_top_entry_matches_commit(headers)
 
+        # Date validation is only required when the latest commit is the
+        # version-finalization commit for the top changelog entry.
+        top_header_index, top_version, top_title = headers[0]
+        commit_subject = get_commit_subject()
+
+        is_version_commit = commit_subject == top_title
+        if is_version_commit:
+            ensure_top_entry_date(lines, top_header_index)
+
+        version_str = f"v{top_version[0]}.{top_version[1]}.{top_version[2]}"
         print("CHANGELOG_OK=true")
+        print("HAS_VERSION_HEADERS=true")
+        print(f"TOP_VERSION={version_str}")
+        print(f"TOP_TITLE={top_title}")
+        print(f"IS_VERSION_COMMIT={'true' if is_version_commit else 'false'}")
         return 0
 
     except Exception as exc:
