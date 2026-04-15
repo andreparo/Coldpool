@@ -14,11 +14,11 @@ In Coldpool, an **artifact** is a backup unit that must be preserved on cold sto
 - `.img` disk images
 
 The system helps users decide **where artifacts should be stored** based on disk capacity and disk health.
- 
-## Main Idea 
-  
+
+## Main Idea
+
 Cold storage is useful, but offline disks are inconvenient to manage manually over time.
- 
+
 Coldpool helps by:
 - tracking available hard disks
 - tracking disk size and storage usage
@@ -51,3 +51,20 @@ Coldpool is especially useful for users who:
 ## Summary
 
 Coldpool is a practical tool for managing offline backup artifacts across many hard disks, helping users make better storage decisions based on **capacity**, **health**, and **artifact importance**.
+
+## Installation
+
+Coldpool is installed on a Linux machine from a release archive.
+
+A release archive contains:
+- `install.sh`
+- the Coldpool backend package
+- the built frontend files
+- example configuration files
+- a `systemd` service file
+- a `VERSION` file
+
+A typical release file looks like:
+
+```text
+coldpool-vX.Y.Z-linux-x86_64.tar.gz
