@@ -1,274 +1,111 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime
 
-import pytest 
-
-from coldpool_server.artifact.artifact import Artifact
-from coldpool_server.artifact.artifact_version import ArtifactVersion
+from coldpool_server.artifact.artifact_copy import ArtifactCopy
 
 
-def test_add_version_saves_version_in_artifact() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+@dataclass(slots=True)
+class ArtifactVersion:
+    """A concrete stored version of one logical artifact."""
 
-    version = ArtifactVersion(
-        id=1,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 15, 10, 30, 0),
-        size_bytes=1024,
-        version_label="v1",
-        checksum="abc123",
-    )
+    id: int
+    artifact_id: int
+    created_at: datetime
+    size_bytes: int
+    version_label: str | None = None
+    checksum: str | None = None
+    expires_at: datetime | None = None
+    copies: list[ArtifactCopy] = field(default_factory=list)
 
-    artifact.add_version(version)
+    def __post_init__(self) -> None:
+        """Validate ArtifactVersion field values after initialization."""
+        if self.id <= 0:
+            raise ValueError("ArtifactVersion id must be > 0.")
 
-    saved_versions = artifact.get_versions()
+        if self.artifact_id <= 0:
+            raise ValueError("ArtifactVersion artifact_id must be > 0.")
 
-    assert len(saved_versions) == 1
-    assert saved_versions[0] == version
+        if self.size_bytes < 0:
+            raise ValueError("ArtifactVersion size_bytes must be >= 0.")
 
+        if self.version_label is not None and not self.version_label.strip():
+            raise ValueError(
+                "ArtifactVersion version_label must not be empty if provided."
+            )
 
-def test_remove_version_removes_previously_added_version() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+        if self.checksum is not None and not self.checksum.strip():
+            raise ValueError(
+                "ArtifactVersion checksum must not be empty if provided."
+            )
 
-    version = ArtifactVersion(
-        id=1,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 15, 10, 30, 0),
-        size_bytes=1024,
-        version_label="v1",
-        checksum="abc123",
-    )
+        if self.expires_at is not None and self.expires_at < self.created_at:
+            raise ValueError("ArtifactVersion expires_at must be >= created_at.")
 
-    artifact.add_version(version)
-    artifact.remove_version(version_id=1)
+        self._validate_initial_copies()
 
-    saved_versions = artifact.get_versions()
+    def _validate_initial_copies(self) -> None:
+        """Validate all copies provided at initialization."""
+        seen_copy_ids: set[int] = set()
+        seen_copy_indexes: set[int] = set()
 
-    assert saved_versions == []
+        for artifact_copy in self.copies:
+            if artifact_copy.artifact_version_id != self.id:
+                raise ValueError(
+                    "ArtifactCopy artifact_version_id does not match ArtifactVersion id."
+                )
 
+            if artifact_copy.id in seen_copy_ids:
+                raise ValueError(
+                    f"ArtifactCopy with id={artifact_copy.id} already exists in this artifact version."
+                )
+            seen_copy_ids.add(artifact_copy.id)
 
-def test_get_most_recent_version_returns_latest_added_by_created_at() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+            if artifact_copy.copy_index in seen_copy_indexes:
+                raise ValueError(
+                    f"ArtifactCopy with copy_index={artifact_copy.copy_index} already exists in this artifact version."
+                )
+            seen_copy_indexes.add(artifact_copy.copy_index)
 
-    older_version = ArtifactVersion(
-        id=1,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 15, 10, 30, 0),
-        size_bytes=1024,
-        version_label="v1",
-        checksum="checksum-v1",
-    )
-    middle_version = ArtifactVersion(
-        id=2,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 16, 10, 30, 0),
-        size_bytes=2048,
-        version_label="v2",
-        checksum="checksum-v2",
-    )
-    newest_version = ArtifactVersion(
-        id=3,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 17, 10, 30, 0),
-        size_bytes=4096,
-        version_label="v3",
-        checksum="checksum-v3",
-    )
+    def add_copy(self, artifact_copy: ArtifactCopy) -> None:
+        """Add a new copy to this artifact version."""
+        if artifact_copy.artifact_version_id != self.id:
+            raise ValueError(
+                "ArtifactCopy artifact_version_id does not match ArtifactVersion id."
+            )
 
-    artifact.add_version(middle_version)
-    artifact.add_version(older_version)
-    artifact.add_version(newest_version)
+        if any(existing_copy.id == artifact_copy.id for existing_copy in self.copies):
+            raise ValueError(
+                f"ArtifactCopy with id={artifact_copy.id} already exists in this artifact version."
+            )
 
-    most_recent_version = artifact.get_most_recent_version()
+        if any(
+            existing_copy.copy_index == artifact_copy.copy_index
+            for existing_copy in self.copies
+        ):
+            raise ValueError(
+                f"ArtifactCopy with copy_index={artifact_copy.copy_index} already exists in this artifact version."
+            )
 
-    assert most_recent_version == newest_version
+        self.copies.append(artifact_copy)
 
+    def remove_copy(self, copy_id: int) -> None:
+        """Remove an existing copy from this artifact version by copy id."""
+        for index, artifact_copy in enumerate(self.copies):
+            if artifact_copy.id == copy_id:
+                del self.copies[index]
+                return
 
-def test_remove_most_recent_version_keeps_next_most_recent_version_correct() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+        raise ValueError(f"ArtifactCopy with id={copy_id} was not found.")
 
-    older_version = ArtifactVersion(
-        id=1,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 15, 10, 30, 0),
-        size_bytes=1024,
-        version_label="v1",
-        checksum="checksum-v1",
-    )
-    middle_version = ArtifactVersion(
-        id=2,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 16, 10, 30, 0),
-        size_bytes=2048,
-        version_label="v2",
-        checksum="checksum-v2",
-    )
-    newest_version = ArtifactVersion(
-        id=3,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 17, 10, 30, 0),
-        size_bytes=4096,
-        version_label="v3",
-        checksum="checksum-v3",
-    )
+    def get_copies(self) -> list[ArtifactCopy]:
+        """Return a copy of the copies currently stored in this artifact version."""
+        return list(self.copies)
 
-    artifact.add_version(older_version)
-    artifact.add_version(middle_version)
-    artifact.add_version(newest_version)
-
-    artifact.remove_version(version_id=3)
-
-    most_recent_version = artifact.get_most_recent_version()
-
-    assert most_recent_version == middle_version
-
-
-def test_add_version_raises_when_artifact_id_does_not_match() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-
-    version = ArtifactVersion(
-        id=1,
-        artifact_id=2,
-        created_at=datetime(2026, 4, 15, 10, 30, 0),
-        size_bytes=1024,
-        version_label="v1",
-        checksum="checksum-v1",
-    )
-
-    with pytest.raises(ValueError, match="does not match Artifact id"):
-        artifact.add_version(version)
-
-
-def test_add_version_raises_when_version_id_already_exists() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-
-    first_version = ArtifactVersion(
-        id=1,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 15, 10, 30, 0),
-        size_bytes=1024,
-        version_label="v1",
-        checksum="checksum-v1",
-    )
-    duplicate_id_version = ArtifactVersion(
-        id=1,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 16, 10, 30, 0),
-        size_bytes=2048,
-        version_label="v2",
-        checksum="checksum-v2",
-    )
-
-    artifact.add_version(first_version)
-
-    with pytest.raises(ValueError, match="already exists"):
-        artifact.add_version(duplicate_id_version)
-
-
-def test_remove_version_raises_when_version_does_not_exist() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-
-    with pytest.raises(ValueError, match="was not found"):
-        artifact.remove_version(version_id=999)
-
-
-def test_get_most_recent_version_returns_none_when_no_versions_exist() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-
-    most_recent_version = artifact.get_most_recent_version()
-
-    assert most_recent_version is None
-
-
-def test_remove_older_version_does_not_change_most_recent_version() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-
-    older_version = ArtifactVersion(
-        id=1,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 15, 10, 30, 0),
-        size_bytes=1024,
-        version_label="v1",
-        checksum="checksum-v1",
-    )
-    middle_version = ArtifactVersion(
-        id=2,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 16, 10, 30, 0),
-        size_bytes=2048,
-        version_label="v2",
-        checksum="checksum-v2",
-    )
-    newest_version = ArtifactVersion(
-        id=3,
-        artifact_id=1,
-        created_at=datetime(2026, 4, 17, 10, 30, 0),
-        size_bytes=4096,
-        version_label="v3",
-        checksum="checksum-v3",
-    )
-
-    artifact.add_version(older_version)
-    artifact.add_version(middle_version)
-    artifact.add_version(newest_version)
-
-    artifact.remove_version(version_id=1)
-
-    most_recent_version = artifact.get_most_recent_version()
-
-    assert most_recent_version == newest_version
+    def get_copy_by_index(self, copy_index: int) -> ArtifactCopy | None:
+        """Return the copy with the given copy index, if present."""
+        for artifact_copy in self.copies:
+            if artifact_copy.copy_index == copy_index:
+                return artifact_copy
+        return None
