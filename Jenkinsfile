@@ -12,6 +12,7 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
+                      -e HOST_WORKSPACE="$WORKSPACE" \
                       -v "$WORKSPACE":/workspace \
                       -w /workspace \
                       coldpool-ci-base:1 \
@@ -54,6 +55,7 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
+                      -e HOST_WORKSPACE="$WORKSPACE" \
                       -v "$WORKSPACE":/workspace \
                       -w /workspace \
                       coldpool-ci-base:1 \
@@ -68,6 +70,7 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
+                      -e HOST_WORKSPACE="$WORKSPACE" \
                       -v "$WORKSPACE":/workspace \
                       -w /workspace \
                       coldpool-ci-base:1 \

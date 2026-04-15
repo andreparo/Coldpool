@@ -22,7 +22,14 @@ if prettier --check "${PRETTIER_TARGETS[@]}"; then
 else
     echo
     echo "[FAIL] Frontend formatting is invalid."
-    echo "To fix it, run:"
-    echo "docker run --rm -v \"$PWD\":/workspace -w /workspace coldpool-ci-base:1 prettier --write ${PRETTIER_TARGETS[*]}"
+
+    if [[ -n "${HOST_WORKSPACE:-}" ]]; then
+        echo "To fix it on the Jenkins host, run:"
+        echo "docker run --rm -v \"$HOST_WORKSPACE\":/workspace -w /workspace coldpool-ci-base:1 prettier --write ${PRETTIER_TARGETS[*]}"
+    else
+        echo "To fix it from the repository root, run:"
+        echo "docker run --rm -v \"\$PWD\":/workspace -w /workspace coldpool-ci-base:1 prettier --write ${PRETTIER_TARGETS[*]}"
+    fi
+
     exit 1
 fi

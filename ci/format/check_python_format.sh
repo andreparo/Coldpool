@@ -11,7 +11,14 @@ if black --check --diff --line-length 135 apps/coldpool_server/src; then
 else
     echo
     echo "[FAIL] Python formatting is invalid."
-    echo "To fix it, run:"
-    echo "docker run --rm -v \"$PWD\":/workspace -w /workspace coldpool-ci-base:1 black --line-length 135 apps/coldpool_server/src"
+
+    if [[ -n "${HOST_WORKSPACE:-}" ]]; then
+        echo "To fix it on the Jenkins host, run:"
+        echo "docker run --rm -v \"$HOST_WORKSPACE\":/workspace -w /workspace coldpool-ci-base:1 black --line-length 135 apps/coldpool_server/src"
+    else
+        echo "To fix it from the repository root, run:"
+        echo "docker run --rm -v \"\$PWD\":/workspace -w /workspace coldpool-ci-base:1 black --line-length 135 apps/coldpool_server/src"
+    fi
+
     exit 1
 fi
