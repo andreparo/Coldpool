@@ -160,241 +160,6 @@ def test_disk_allows_valid_states() -> None:
         assert disk.state == state
 
 
-def test_disk_accepts_valid_initial_copies() -> None:
-    disk = _build_empty_disk()
-    artifact = _build_artifact(1, "artifact_a")
-    version = _build_artifact_version(1, artifact, 200)
-
-    first_copy = _build_copy(1, version, 1, disk)
-    second_copy = _build_copy(2, version, 2, disk)
-
-    disk_with_copies = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        copies=[first_copy, second_copy],
-    )
-
-    assert disk_with_copies.get_copies() == [first_copy, second_copy]
-
-
-def test_disk_raises_when_initial_copy_points_to_another_disk() -> None:
-    other_disk = _build_empty_disk(disk_id=2, name="disk_b")
-    artifact = _build_artifact(1, "artifact_a")
-    version = _build_artifact_version(1, artifact, 200)
-
-    wrong_copy = _build_copy(1, version, 1, other_disk)
-
-    with pytest.raises(
-        ValueError,
-        match="ArtifactCopy disk does not match Disk.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            copies=[wrong_copy],
-        )
-
-
-def test_disk_raises_when_initial_copy_ids_are_duplicated() -> None:
-    disk = _build_empty_disk()
-    artifact = _build_artifact(1, "artifact_a")
-    version = _build_artifact_version(1, artifact, 200)
-
-    first_copy = _build_copy(1, version, 1, disk)
-    duplicate_id_copy = _build_copy(1, version, 2, disk)
-
-    with pytest.raises(ValueError, match="already exists"):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            copies=[first_copy, duplicate_id_copy],
-        )
-
-
-def test_disk_raises_when_same_artifact_version_and_copy_index_are_duplicated() -> None:
-    disk = _build_empty_disk()
-    artifact = _build_artifact(1, "artifact_a")
-    version = _build_artifact_version(1, artifact, 200)
-
-    first_copy = _build_copy(1, version, 1, disk)
-    duplicate_slot_copy = _build_copy(2, version, 1, disk)
-
-    with pytest.raises(ValueError, match="copy_index=1 already exists"):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            copies=[first_copy, duplicate_slot_copy],
-        )
-
-
-def test_disk_raises_when_same_artifact_version_has_two_copies_on_same_disk() -> None:
-    disk = _build_empty_disk()
-    artifact = _build_artifact(1, "artifact_a")
-    version = _build_artifact_version(1, artifact, 200)
-
-    first_copy = _build_copy(1, version, 1, disk)
-    second_copy = _build_copy(2, version, 2, disk)
-
-    with pytest.raises(
-        ValueError,
-        match="Disk must not contain more than one copy of the same artifact version.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            copies=[first_copy, second_copy],
-        )
-
-
-def test_disk_raises_when_copies_exceed_total_capacity() -> None:
-    disk = _build_empty_disk(total_capacity_bytes=500)
-    artifact_a = _build_artifact(1, "artifact_a")
-    artifact_b = _build_artifact(2, "artifact_b")
-    version_a = _build_artifact_version(1, artifact_a, 300)
-    version_b = _build_artifact_version(2, artifact_b, 250)
-
-    copy_a = _build_copy(1, version_a, 1, disk)
-    copy_b = _build_copy(2, version_b, 1, disk)
-
-    with pytest.raises(
-        ValueError,
-        match="Disk copies exceed total capacity.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=500,
-            health_score=0.8,
-            copies=[copy_a, copy_b],
-        )
-
-
-def test_disk_get_used_space_bytes_returns_sum_of_copy_sizes() -> None:
-    disk = _build_empty_disk()
-    artifact_a = _build_artifact(1, "artifact_a")
-    artifact_b = _build_artifact(2, "artifact_b")
-    version_a = _build_artifact_version(1, artifact_a, 200)
-    version_b = _build_artifact_version(2, artifact_b, 300)
-
-    copy_a = _build_copy(1, version_a, 1, disk)
-    copy_b = _build_copy(2, version_b, 1, disk)
-
-    disk_with_copies = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        copies=[copy_a, copy_b],
-    )
-
-    assert disk_with_copies.get_used_space_bytes() == 500
-
-
-def test_disk_free_space_bytes_is_derived_from_total_capacity_and_copies() -> None:
-    disk = _build_empty_disk()
-    artifact_a = _build_artifact(1, "artifact_a")
-    artifact_b = _build_artifact(2, "artifact_b")
-    version_a = _build_artifact_version(1, artifact_a, 200)
-    version_b = _build_artifact_version(2, artifact_b, 300)
-
-    copy_a = _build_copy(1, version_a, 1, disk)
-    copy_b = _build_copy(2, version_b, 1, disk)
-
-    disk_with_copies = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        copies=[copy_a, copy_b],
-    )
-
-    assert disk_with_copies.free_space_bytes == 500
-
-
-def test_disk_can_store_size_returns_true_when_size_fits_remaining_free_space() -> None:
-    disk = _build_empty_disk()
-    artifact_a = _build_artifact(1, "artifact_a")
-    artifact_b = _build_artifact(2, "artifact_b")
-    version_a = _build_artifact_version(1, artifact_a, 200)
-    version_b = _build_artifact_version(2, artifact_b, 300)
-
-    copy_a = _build_copy(1, version_a, 1, disk)
-    copy_b = _build_copy(2, version_b, 1, disk)
-
-    disk_with_copies = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        copies=[copy_a, copy_b],
-    )
-
-    assert disk_with_copies.can_store_size(500) is True
-
-
-def test_disk_can_store_size_returns_false_when_size_exceeds_remaining_free_space() -> None:
-    disk = _build_empty_disk()
-    artifact_a = _build_artifact(1, "artifact_a")
-    artifact_b = _build_artifact(2, "artifact_b")
-    version_a = _build_artifact_version(1, artifact_a, 200)
-    version_b = _build_artifact_version(2, artifact_b, 300)
-
-    copy_a = _build_copy(1, version_a, 1, disk)
-    copy_b = _build_copy(2, version_b, 1, disk)
-
-    disk_with_copies = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        copies=[copy_a, copy_b],
-    )
-
-    assert disk_with_copies.can_store_size(501) is False
-
-
-def test_disk_uses_artifact_version_size_when_calculating_used_space() -> None:
-    disk = _build_empty_disk()
-
-    artifact = _build_artifact(1, "artifact_a")
-    older_version = _build_artifact_version(
-        1,
-        artifact,
-        200,
-        created_at=datetime(2026, 4, 15, 10, 30, 0),
-    )
-    newer_version = _build_artifact_version(
-        2,
-        artifact,
-        350,
-        created_at=datetime(2026, 4, 16, 10, 30, 0),
-    )
-
-    older_copy = _build_copy(1, older_version, 1, disk)
-    newer_copy = _build_copy(2, newer_version, 1, disk)
-
-    disk_with_copies = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        copies=[older_copy, newer_copy],
-    )
-
-    assert disk_with_copies.get_used_space_bytes() == 550
-    assert disk_with_copies.free_space_bytes == 450
-
-
 def test_disk_add_copy_saves_copy_in_disk() -> None:
     disk = _build_empty_disk()
     artifact = _build_artifact(1, "artifact_a")
@@ -438,9 +203,11 @@ def test_disk_add_copy_raises_when_copy_disk_does_not_match() -> None:
 
 def test_disk_add_copy_raises_when_copy_id_already_exists() -> None:
     disk = _build_empty_disk()
-    artifact = _build_artifact(1, "artifact_a")
-    version_a = _build_artifact_version(1, artifact, 200)
-    version_b = _build_artifact_version(2, artifact, 300)
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+    version_a = _build_artifact_version(1, artifact_a, 200)
+    version_b = _build_artifact_version(2, artifact_b, 300)
+
     first_copy = _build_copy(1, version_a, 1, disk)
     duplicate_id_copy = _build_copy(1, version_b, 1, disk)
 
@@ -448,6 +215,147 @@ def test_disk_add_copy_raises_when_copy_id_already_exists() -> None:
 
     with pytest.raises(ValueError, match="already exists"):
         disk.add_copy(duplicate_id_copy)
+
+
+def test_disk_add_copy_raises_when_same_artifact_version_and_copy_index_are_duplicated() -> None:
+    disk = _build_empty_disk()
+    artifact = _build_artifact(1, "artifact_a")
+    version = _build_artifact_version(1, artifact, 200)
+
+    first_copy = _build_copy(1, version, 1, disk)
+    duplicate_slot_copy = _build_copy(2, version, 1, disk)
+
+    disk.add_copy(first_copy)
+
+    with pytest.raises(ValueError, match="copy_index=1 already exists"):
+        disk.add_copy(duplicate_slot_copy)
+
+
+def test_disk_add_copy_raises_when_same_artifact_version_has_two_copies_on_same_disk() -> None:
+    disk = _build_empty_disk()
+    artifact = _build_artifact(1, "artifact_a")
+    version = _build_artifact_version(1, artifact, 200)
+
+    first_copy = _build_copy(1, version, 1, disk)
+    second_copy = _build_copy(2, version, 2, disk)
+
+    disk.add_copy(first_copy)
+
+    with pytest.raises(
+        ValueError,
+        match="Disk must not contain more than one copy of the same artifact version.",
+    ):
+        disk.add_copy(second_copy)
+
+
+def test_disk_add_copy_raises_when_copies_exceed_total_capacity() -> None:
+    disk = _build_empty_disk(total_capacity_bytes=500)
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+    version_a = _build_artifact_version(1, artifact_a, 300)
+    version_b = _build_artifact_version(2, artifact_b, 250)
+
+    copy_a = _build_copy(1, version_a, 1, disk)
+    copy_b = _build_copy(2, version_b, 1, disk)
+
+    disk.add_copy(copy_a)
+
+    with pytest.raises(
+        ValueError,
+        match="Disk copies exceed total capacity.",
+    ):
+        disk.add_copy(copy_b)
+
+
+def test_disk_get_used_space_bytes_returns_sum_of_copy_sizes() -> None:
+    disk = _build_empty_disk()
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+    version_a = _build_artifact_version(1, artifact_a, 200)
+    version_b = _build_artifact_version(2, artifact_b, 300)
+
+    copy_a = _build_copy(1, version_a, 1, disk)
+    copy_b = _build_copy(2, version_b, 1, disk)
+
+    disk.add_copy(copy_a)
+    disk.add_copy(copy_b)
+
+    assert disk.get_used_space_bytes() == 500
+
+
+def test_disk_free_space_bytes_is_derived_from_total_capacity_and_copies() -> None:
+    disk = _build_empty_disk()
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+    version_a = _build_artifact_version(1, artifact_a, 200)
+    version_b = _build_artifact_version(2, artifact_b, 300)
+
+    copy_a = _build_copy(1, version_a, 1, disk)
+    copy_b = _build_copy(2, version_b, 1, disk)
+
+    disk.add_copy(copy_a)
+    disk.add_copy(copy_b)
+
+    assert disk.free_space_bytes == 500
+
+
+def test_disk_can_store_size_returns_true_when_size_fits_remaining_free_space() -> None:
+    disk = _build_empty_disk()
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+    version_a = _build_artifact_version(1, artifact_a, 200)
+    version_b = _build_artifact_version(2, artifact_b, 300)
+
+    copy_a = _build_copy(1, version_a, 1, disk)
+    copy_b = _build_copy(2, version_b, 1, disk)
+
+    disk.add_copy(copy_a)
+    disk.add_copy(copy_b)
+
+    assert disk.can_store_size(500) is True
+
+
+def test_disk_can_store_size_returns_false_when_size_exceeds_remaining_free_space() -> None:
+    disk = _build_empty_disk()
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+    version_a = _build_artifact_version(1, artifact_a, 200)
+    version_b = _build_artifact_version(2, artifact_b, 300)
+
+    copy_a = _build_copy(1, version_a, 1, disk)
+    copy_b = _build_copy(2, version_b, 1, disk)
+
+    disk.add_copy(copy_a)
+    disk.add_copy(copy_b)
+
+    assert disk.can_store_size(501) is False
+
+
+def test_disk_uses_artifact_version_size_when_calculating_used_space() -> None:
+    disk = _build_empty_disk()
+
+    artifact = _build_artifact(1, "artifact_a")
+    older_version = _build_artifact_version(
+        1,
+        artifact,
+        200,
+        created_at=datetime(2026, 4, 15, 10, 30, 0),
+    )
+    newer_version = _build_artifact_version(
+        2,
+        artifact,
+        350,
+        created_at=datetime(2026, 4, 16, 10, 30, 0),
+    )
+
+    older_copy = _build_copy(1, older_version, 1, disk)
+    newer_copy = _build_copy(2, newer_version, 1, disk)
+
+    disk.add_copy(older_copy)
+    disk.add_copy(newer_copy)
+
+    assert disk.get_used_space_bytes() == 550
+    assert disk.free_space_bytes == 450
 
 
 def test_disk_remove_copy_raises_when_copy_does_not_exist() -> None:

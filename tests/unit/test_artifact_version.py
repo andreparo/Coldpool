@@ -7,6 +7,7 @@ import pytest
 from coldpool_server.artifact.artifact import Artifact
 from coldpool_server.artifact.artifact_copy import ArtifactCopy
 from coldpool_server.artifact.artifact_version import ArtifactVersion
+from coldpool_server.disk.disk import Disk
 
 
 def _build_artifact(
@@ -19,6 +20,19 @@ def _build_artifact(
         priority_score=100,
         desired_copy_count=2,
         artifact_type="zip",
+    )
+
+
+def _build_disk(
+    disk_id: int = 1,
+    name: str = "disk_a",
+) -> Disk:
+    return Disk(
+        id=disk_id,
+        name=name,
+        total_capacity_bytes=1_000,
+        health_score=0.8,
+        copies=[],
     )
 
 
@@ -149,6 +163,7 @@ def test_artifact_version_allows_optional_fields_to_be_none() -> None:
 
 def test_add_copy_saves_copy_in_artifact_version() -> None:
     artifact = _build_artifact()
+    disk = _build_disk()
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -158,11 +173,13 @@ def test_add_copy_saves_copy_in_artifact_version() -> None:
         checksum="abc123",
         copies=[],
     )
+    artifact.add_version(artifact_version)
+
     artifact_copy = ArtifactCopy(
         id=1,
         artifact_version=artifact_version,
         copy_index=1,
-        disk_id=10,
+        disk=disk,
         disk_path="/mnt/disk_a/photos_backup_v1.zip",
         is_present=True,
         status="verified",
@@ -179,6 +196,7 @@ def test_add_copy_saves_copy_in_artifact_version() -> None:
 
 def test_remove_copy_removes_previously_added_copy() -> None:
     artifact = _build_artifact()
+    disk = _build_disk()
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -188,11 +206,13 @@ def test_remove_copy_removes_previously_added_copy() -> None:
         checksum="abc123",
         copies=[],
     )
+    artifact.add_version(artifact_version)
+
     artifact_copy = ArtifactCopy(
         id=1,
         artifact_version=artifact_version,
         copy_index=1,
-        disk_id=10,
+        disk=disk,
         disk_path="/mnt/disk_a/photos_backup_v1.zip",
         is_present=True,
         status="verified",
@@ -209,6 +229,8 @@ def test_remove_copy_removes_previously_added_copy() -> None:
 def test_add_copy_raises_when_copy_artifact_version_does_not_match() -> None:
     artifact = _build_artifact()
     other_artifact = _build_artifact(artifact_id=2, name="videos_backup")
+    disk = _build_disk()
+
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -227,11 +249,15 @@ def test_add_copy_raises_when_copy_artifact_version_does_not_match() -> None:
         checksum="checksum-v2",
         copies=[],
     )
+
+    artifact.add_version(artifact_version)
+    other_artifact.add_version(other_version)
+
     artifact_copy = ArtifactCopy(
         id=1,
         artifact_version=other_version,
         copy_index=1,
-        disk_id=10,
+        disk=disk,
         disk_path="/mnt/disk_a/photos_backup_v1.zip",
         is_present=True,
         status="verified",
@@ -246,6 +272,8 @@ def test_add_copy_raises_when_copy_artifact_version_does_not_match() -> None:
 
 def test_add_copy_raises_when_copy_id_already_exists() -> None:
     artifact = _build_artifact()
+    disk_a = _build_disk(disk_id=1, name="disk_a")
+    disk_b = _build_disk(disk_id=2, name="disk_b")
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -255,11 +283,13 @@ def test_add_copy_raises_when_copy_id_already_exists() -> None:
         checksum="abc123",
         copies=[],
     )
+    artifact.add_version(artifact_version)
+
     first_copy = ArtifactCopy(
         id=1,
         artifact_version=artifact_version,
         copy_index=1,
-        disk_id=10,
+        disk=disk_a,
         disk_path="/mnt/disk_a/photos_backup_v1.zip",
         is_present=True,
         status="verified",
@@ -268,7 +298,7 @@ def test_add_copy_raises_when_copy_id_already_exists() -> None:
         id=1,
         artifact_version=artifact_version,
         copy_index=2,
-        disk_id=11,
+        disk=disk_b,
         disk_path="/mnt/disk_b/photos_backup_v1.zip",
         is_present=True,
         status="verified",
@@ -282,6 +312,8 @@ def test_add_copy_raises_when_copy_id_already_exists() -> None:
 
 def test_add_copy_raises_when_copy_index_already_exists() -> None:
     artifact = _build_artifact()
+    disk_a = _build_disk(disk_id=1, name="disk_a")
+    disk_b = _build_disk(disk_id=2, name="disk_b")
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -291,11 +323,13 @@ def test_add_copy_raises_when_copy_index_already_exists() -> None:
         checksum="abc123",
         copies=[],
     )
+    artifact.add_version(artifact_version)
+
     first_copy = ArtifactCopy(
         id=1,
         artifact_version=artifact_version,
         copy_index=1,
-        disk_id=10,
+        disk=disk_a,
         disk_path="/mnt/disk_a/photos_backup_v1.zip",
         is_present=True,
         status="verified",
@@ -304,7 +338,7 @@ def test_add_copy_raises_when_copy_index_already_exists() -> None:
         id=2,
         artifact_version=artifact_version,
         copy_index=1,
-        disk_id=11,
+        disk=disk_b,
         disk_path="/mnt/disk_b/photos_backup_v1.zip",
         is_present=True,
         status="verified",
@@ -327,6 +361,7 @@ def test_remove_copy_raises_when_copy_does_not_exist() -> None:
         checksum="abc123",
         copies=[],
     )
+    artifact.add_version(artifact_version)
 
     with pytest.raises(ValueError, match="was not found"):
         artifact_version.remove_copy(copy_id=999)
@@ -334,6 +369,8 @@ def test_remove_copy_raises_when_copy_does_not_exist() -> None:
 
 def test_get_copy_by_index_returns_matching_copy() -> None:
     artifact = _build_artifact()
+    disk_a = _build_disk(disk_id=1, name="disk_a")
+    disk_b = _build_disk(disk_id=2, name="disk_b")
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -343,11 +380,13 @@ def test_get_copy_by_index_returns_matching_copy() -> None:
         checksum="abc123",
         copies=[],
     )
+    artifact.add_version(artifact_version)
+
     first_copy = ArtifactCopy(
         id=1,
         artifact_version=artifact_version,
         copy_index=1,
-        disk_id=10,
+        disk=disk_a,
         disk_path="/mnt/disk_a/photos_backup_v1.zip",
         is_present=True,
         status="verified",
@@ -356,7 +395,7 @@ def test_get_copy_by_index_returns_matching_copy() -> None:
         id=2,
         artifact_version=artifact_version,
         copy_index=2,
-        disk_id=11,
+        disk=disk_b,
         disk_path="/mnt/disk_b/photos_backup_v1.zip",
         is_present=True,
         status="verified",
@@ -381,6 +420,7 @@ def test_get_copy_by_index_returns_none_when_missing() -> None:
         checksum="abc123",
         copies=[],
     )
+    artifact.add_version(artifact_version)
 
     found_copy = artifact_version.get_copy_by_index(copy_index=1)
 
