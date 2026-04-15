@@ -7,14 +7,16 @@ pipeline {
 
     stages {
         stage('VERSIONING') {
-            agent {
-                dockerContainer {
-                    label 'linux-docker'
-                    image 'coldpool-ci-base:1'
-                }
-            }
+            agent { label 'linux-docker' }
+
             steps {
-                sh 'bash ci/versioning.sh'
+                sh '''
+                    docker run --rm \
+                      -v "$WORKSPACE":/workspace \
+                      -w /workspace \
+                      coldpool-ci-base:1 \
+                      bash ci/versioning.sh
+                '''
 
                 script {
                     def envText = readFile('ci_version.env').trim()
@@ -47,26 +49,30 @@ pipeline {
         }
 
         stage('STRUCTURE') {
-            agent {
-                dockerContainer {
-                    label 'linux-docker'
-                    image 'coldpool-ci-base:1'
-                }
-            }
+            agent { label 'linux-docker' }
+
             steps {
-                sh 'bash ci/structure.sh'
+                sh '''
+                    docker run --rm \
+                      -v "$WORKSPACE":/workspace \
+                      -w /workspace \
+                      coldpool-ci-base:1 \
+                      bash ci/structure.sh
+                '''
             }
         }
 
         stage('FORMAT') {
-            agent {
-                dockerContainer {
-                    label 'linux-docker'
-                    image 'coldpool-ci-base:1'
-                }
-            }
+            agent { label 'linux-docker' }
+
             steps {
-                sh 'bash ci/format.sh'
+                sh '''
+                    docker run --rm \
+                      -v "$WORKSPACE":/workspace \
+                      -w /workspace \
+                      coldpool-ci-base:1 \
+                      bash ci/format.sh
+                '''
             }
         }
     }
