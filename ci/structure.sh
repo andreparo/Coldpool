@@ -7,3 +7,5 @@ cd "$repo_root"
 python3 ci/structure/check_readme.py .
 python3 ci/structure/check_license.py .
 python3 ci/structure/check_top_level_dirs.py .
+
+python3 ci/structure/check_python_app.py apps/coldpool_server
