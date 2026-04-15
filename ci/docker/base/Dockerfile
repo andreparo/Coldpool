@@ -19,10 +19,13 @@ RUN mkdir -p /etc/apt/keyrings \
     && apt-get update && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Python formatter used in CI
-RUN python -m pip install --no-cache-dir black==25.11.0
+# Shared Python CI tools
+RUN python -m pip install --no-cache-dir \
+    black==25.11.0 \
+    mypy \
+    pylint
 
-# Frontend formatter used in CI
+# Shared frontend CI tool
 RUN npm install -g prettier
 
 WORKDIR /workspace
