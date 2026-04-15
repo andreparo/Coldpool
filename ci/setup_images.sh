@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-build_number="${1:?Usage: bash ci/docker/setup/setup_images.sh <build_number> <short_sha>}"
-short_sha="${2:?Usage: bash ci/docker/setup/setup_images.sh <build_number> <short_sha>}"
+build_number="${1:?Usage: bash ci/setup_images.sh <build_number> <short_sha>}"
+short_sha="${2:?Usage: bash ci/setup_images.sh <build_number> <short_sha>}"
 
 base_image="coldpool-ci-base:1"
 
