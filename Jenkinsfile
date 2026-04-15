@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        NPM_CACHE_DIR = '/mnt/1000E/jenkins-cache/npm'
+        NPM_CACHE_DIR = '/mnt/1000E/jenkins-agent/cache/npm'
     }
 
     stages {
@@ -119,72 +119,5 @@ pipeline {
                 }
             }
         }
-
-        /*
-        stage('TEST_RUN_1') {
-            parallel {
-                stage('SMOKE') {
-                    agent { label 'linux-docker' }
-                    steps {
-                        sh 'echo TODO: bash ci/smoke.sh'
-                    }
-                }
-
-                stage('UNIT') {
-                    agent { label 'linux-docker' }
-                    steps {
-                        sh 'echo TODO: bash ci/unit.sh'
-                    }
-                }
-
-                stage('COMPONENT') {
-                    agent { label 'linux-docker' }
-                    steps {
-                        sh 'echo TODO: bash ci/component.sh'
-                    }
-                }
-
-                stage('TACTICAL_INTEGRATION') {
-                    agent { label 'linux-docker' }
-                    steps {
-                        sh 'echo TODO: bash ci/integration.sh'
-                    }
-                }
-            }
-        }
-
-        stage('TEST_BUILD_GENERATION_AND_DEPLOYMENT') {
-            agent { label 'linux-docker' }
-
-            steps {
-                sh 'echo TODO: bash ci/build.sh'
-            }
-        }
-
-        stage('TEST_RUN_2') {
-            parallel {
-                stage('ACCEPTANCE') {
-                    agent { label 'linux-docker' }
-                    steps {
-                        sh 'echo TODO: bash ci/acceptance.sh'
-                    }
-                }
-
-                stage('LONG_INTEGRATION') {
-                    agent { label 'linux-docker' }
-                    steps {
-                        sh 'echo TODO: bash ci/long_integration.sh'
-                    }
-                }
-
-                stage('REPORTS') {
-                    agent { label 'linux-docker' }
-                    steps {
-                        sh 'echo TODO: bash ci/reports.sh'
-                    }
-                }
-            }
-        }
-        */
     }
 }
