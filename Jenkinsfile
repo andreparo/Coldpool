@@ -49,48 +49,52 @@ pipeline {
             }
         }
 
-        stage('STRUCTURE') {
-            agent { label 'linux-docker' }
+        stage('QUALITY_GATES') {
+            parallel {
+                stage('STRUCTURE') {
+                    agent { label 'linux-docker' }
 
-            steps {
-                sh '''
-                    docker run --rm \
-                      -e HOST_WORKSPACE="$WORKSPACE" \
-                      -v "$WORKSPACE":/workspace \
-                      -w /workspace \
-                      coldpool-ci-base:1 \
-                      bash ci/structure.sh
-                '''
-            }
-        }
+                    steps {
+                        sh '''
+                            docker run --rm \
+                              -e HOST_WORKSPACE="$WORKSPACE" \
+                              -v "$WORKSPACE":/workspace \
+                              -w /workspace \
+                              coldpool-ci-base:1 \
+                              bash ci/structure.sh
+                        '''
+                    }
+                }
 
-        stage('FORMAT') {
-            agent { label 'linux-docker' }
+                stage('FORMAT') {
+                    agent { label 'linux-docker' }
 
-            steps {
-                sh '''
-                    docker run --rm \
-                      -e HOST_WORKSPACE="$WORKSPACE" \
-                      -v "$WORKSPACE":/workspace \
-                      -w /workspace \
-                      coldpool-ci-base:1 \
-                      bash ci/format.sh
-                '''
-            }
-        }
+                    steps {
+                        sh '''
+                            docker run --rm \
+                              -e HOST_WORKSPACE="$WORKSPACE" \
+                              -v "$WORKSPACE":/workspace \
+                              -w /workspace \
+                              coldpool-ci-base:1 \
+                              bash ci/format.sh
+                        '''
+                    }
+                }
 
-        stage('LINT') {
-            agent { label 'linux-docker' }
+                stage('LINT') {
+                    agent { label 'linux-docker' }
 
-            steps {
-                sh '''
-                    docker run --rm \
-                      -e HOST_WORKSPACE="$WORKSPACE" \
-                      -v "$WORKSPACE":/workspace \
-                      -w /workspace \
-                      coldpool-ci-base:1 \
-                      bash ci/lint.sh
-                '''
+                    steps {
+                        sh '''
+                            docker run --rm \
+                              -e HOST_WORKSPACE="$WORKSPACE" \
+                              -v "$WORKSPACE":/workspace \
+                              -w /workspace \
+                              coldpool-ci-base:1 \
+                              bash ci/lint.sh
+                        '''
+                    }
+                }
             }
         }
     }
