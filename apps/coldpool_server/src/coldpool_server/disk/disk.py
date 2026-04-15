@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from coldpool_server.artifact.artifact import Artifact
 
 
 @dataclass(slots=True)
@@ -14,6 +16,7 @@ class Disk:
     health_score: float
     location: str | None = None
     state: str = "offline"
+    artifacts: list[Artifact] = field(default_factory=list)
 
     VALID_STATES = ("online", "offline", "offsite", "retired")
 
@@ -43,6 +46,30 @@ class Disk:
         if self.state not in self.VALID_STATES:
             raise ValueError("Disk state must be one of: online, offline, offsite, retired.")
 
+        self._validate_artifacts_have_no_duplicates()
+        self._validate_artifacts_have_most_recent_versions()
+        self._validate_artifacts_fit_used_space_budget()
+
+    def _validate_artifacts_have_no_duplicates(self) -> None:
+        """Validate that the artifacts list does not contain duplicates."""
+        seen_artifact_ids: set[int] = set()
+
+        for artifact in self.artifacts:
+            if artifact.id in seen_artifact_ids:
+                raise ValueError("Disk artifacts must not contain duplicates.")
+            seen_artifact_ids.add(artifact.id)
+
+    def _validate_artifacts_have_most_recent_versions(self) -> None:
+        """Validate that every artifact has a most recent version."""
+        for artifact in self.artifacts:
+            if artifact.get_most_recent_version() is None:
+                raise ValueError("Disk artifacts must have a most recent version.")
+
+    def _validate_artifacts_fit_used_space_budget(self) -> None:
+        """Validate that artifact sizes fit inside the disk used-space budget."""
+        if self.get_used_space_bytes() > self.total_capacity_bytes - self.free_space_bytes:
+            raise ValueError("Disk artifacts exceed the allowed used space.")
+
     def can_store_size(self, size_bytes: int) -> bool:
         """Return whether the disk can store a payload of the given size."""
         if size_bytes < 0:
@@ -50,8 +77,16 @@ class Disk:
         return size_bytes <= self.free_space_bytes
 
     def get_used_space_bytes(self) -> int:
-        """Return the currently used space on the disk."""
-        return self.total_capacity_bytes - self.free_space_bytes
+        """Return the currently used space on the disk from stored artifacts."""
+        used_space_bytes = 0
+
+        for artifact in self.artifacts:
+            most_recent_version = artifact.get_most_recent_version()
+            if most_recent_version is None:
+                raise ValueError("Disk artifacts must have a most recent version.")
+            used_space_bytes += most_recent_version.size_bytes
+
+        return used_space_bytes
 
     def is_online(self) -> bool:
         """Return whether the disk is currently online."""
