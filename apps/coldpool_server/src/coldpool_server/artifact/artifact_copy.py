@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from coldpool_server.artifact.artifact import Artifact
     from coldpool_server.artifact.artifact_version import ArtifactVersion
+    from coldpool_server.disk.disk import Disk
 
 
 @dataclass(slots=True)
@@ -15,7 +16,7 @@ class ArtifactCopy:
     id: int
     artifact_version: ArtifactVersion
     copy_index: int
-    disk_id: int
+    disk: Disk
     disk_path: str
     is_present: bool = True
     status: str = "verified"
@@ -30,8 +31,8 @@ class ArtifactCopy:
         if self.copy_index < 1:
             raise ValueError("ArtifactCopy copy_index must be >= 1.")
 
-        if self.disk_id <= 0:
-            raise ValueError("ArtifactCopy disk_id must be > 0.")
+        if self.disk.id <= 0:
+            raise ValueError("ArtifactCopy disk must reference a valid Disk.")
 
         if not self.disk_path.strip():
             raise ValueError("ArtifactCopy disk_path must not be empty.")
