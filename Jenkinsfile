@@ -109,7 +109,7 @@ pipeline {
 
     post {
         always {
-            script {
+            node('linux-docker') {
                 sh '''
                     docker image rm -f "$PROJECT_CI_IMAGE" || true
                 '''
