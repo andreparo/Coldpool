@@ -78,5 +78,20 @@ pipeline {
                 '''
             }
         }
+
+        stage('LINT') {
+            agent { label 'linux-docker' }
+
+            steps {
+                sh '''
+                    docker run --rm \
+                      -e HOST_WORKSPACE="$WORKSPACE" \
+                      -v "$WORKSPACE":/workspace \
+                      -w /workspace \
+                      coldpool-ci-base:1 \
+                      bash ci/lint.sh
+                '''
+            }
+        }
     }
 }
