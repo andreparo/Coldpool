@@ -9,3 +9,4 @@ python3 ci/structure/check_license.py .
 python3 ci/structure/check_top_level_dirs.py .
 
 python3 ci/structure/check_python_app.py apps/coldpool_server
+python3 ci/structure/check_typescript_react_app.py apps/coldpool_web_app
