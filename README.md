@@ -14,7 +14,7 @@ In Coldpool, an **artifact** is a backup unit that must be preserved on cold sto
 - `.img` disk images
 
 The system helps users decide **where artifacts should be stored** based on disk capacity and disk health.
-
+ 
 ## Main Idea
   
 Cold storage is useful, but offline disks are inconvenient to manage manually over time.
