@@ -54,7 +54,7 @@ pipeline {
 
             steps {
                 sh '''
-                    bash ci/docker/setup/setup_images.sh "$BUILD_NUMBER" "$SHORT_SHA"
+                    bash ci/setup_images.sh "$BUILD_NUMBER" "$SHORT_SHA"
                 '''
 
                 script {
