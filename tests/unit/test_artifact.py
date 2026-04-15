@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
+import pytest 
 
-from coldpool_server.artifact import Artifact
-from coldpool_server.artifact import ArtifactVersion
+from coldpool_server.artifact.artifact import Artifact
+from coldpool_server.artifact.artifact_version import ArtifactVersion
 
 
 def test_add_version_saves_version_in_artifact() -> None:
