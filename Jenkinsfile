@@ -39,9 +39,16 @@ pipeline {
                 }
             }
         }
+
         stage('STRUCTURE') {
             steps {
                 sh 'bash ci/structure.sh'
+            }
+        }
+
+        stage('FORMAT') {
+            steps {
+                sh 'bash ci/format.sh'
             }
         }
     }
