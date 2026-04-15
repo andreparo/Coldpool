@@ -40,7 +40,6 @@ def test_disk_is_created_with_valid_data() -> None:
         id=1,
         name="disk_a",
         total_capacity_bytes=1_000,
-        free_space_bytes=400,
         health_score=0.8,
         location="office",
         state="offline",
@@ -50,7 +49,7 @@ def test_disk_is_created_with_valid_data() -> None:
     assert disk.id == 1
     assert disk.name == "disk_a"
     assert disk.total_capacity_bytes == 1_000
-    assert disk.free_space_bytes == 400
+    assert disk.free_space_bytes == 1_000
     assert disk.health_score == 0.8
     assert disk.location == "office"
     assert disk.state == "offline"
@@ -62,7 +61,6 @@ def test_disk_raises_when_id_is_not_positive() -> None:
             id=0,
             name="disk_a",
             total_capacity_bytes=1_000,
-            free_space_bytes=400,
             health_score=0.8,
             artifacts=[],
         )
@@ -74,7 +72,6 @@ def test_disk_raises_when_name_is_blank() -> None:
             id=1,
             name="   ",
             total_capacity_bytes=1_000,
-            free_space_bytes=400,
             health_score=0.8,
             artifacts=[],
         )
@@ -89,37 +86,6 @@ def test_disk_raises_when_total_capacity_bytes_is_negative() -> None:
             id=1,
             name="disk_a",
             total_capacity_bytes=-1,
-            free_space_bytes=400,
-            health_score=0.8,
-            artifacts=[],
-        )
-
-
-def test_disk_raises_when_free_space_bytes_is_negative() -> None:
-    with pytest.raises(
-        ValueError,
-        match="Disk free_space_bytes must be >= 0.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            free_space_bytes=-1,
-            health_score=0.8,
-            artifacts=[],
-        )
-
-
-def test_disk_raises_when_free_space_bytes_exceeds_total_capacity_bytes() -> None:
-    with pytest.raises(
-        ValueError,
-        match="Disk free_space_bytes must be <= total_capacity_bytes.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            free_space_bytes=1_001,
             health_score=0.8,
             artifacts=[],
         )
@@ -134,7 +100,6 @@ def test_disk_raises_when_health_score_is_below_zero() -> None:
             id=1,
             name="disk_a",
             total_capacity_bytes=1_000,
-            free_space_bytes=400,
             health_score=-0.1,
             artifacts=[],
         )
@@ -149,7 +114,6 @@ def test_disk_raises_when_health_score_is_above_one() -> None:
             id=1,
             name="disk_a",
             total_capacity_bytes=1_000,
-            free_space_bytes=400,
             health_score=1.1,
             artifacts=[],
         )
@@ -164,7 +128,6 @@ def test_disk_raises_when_location_is_blank() -> None:
             id=1,
             name="disk_a",
             total_capacity_bytes=1_000,
-            free_space_bytes=400,
             health_score=0.8,
             location="   ",
             artifacts=[],
@@ -180,7 +143,6 @@ def test_disk_raises_when_state_is_invalid() -> None:
             id=1,
             name="disk_a",
             total_capacity_bytes=1_000,
-            free_space_bytes=400,
             health_score=0.8,
             state="broken",
             artifacts=[],
@@ -195,7 +157,6 @@ def test_disk_allows_valid_states() -> None:
             id=1,
             name="disk_a",
             total_capacity_bytes=1_000,
-            free_space_bytes=400,
             health_score=0.8,
             state=state,
             artifacts=[],
@@ -204,7 +165,7 @@ def test_disk_allows_valid_states() -> None:
         assert disk.state == state
 
 
-def test_disk_accepts_artifacts_that_fit_in_used_space_budget() -> None:
+def test_disk_accepts_artifacts_that_fit_in_total_capacity() -> None:
     artifact_a = _build_artifact(1, "artifact_a", 200)
     artifact_b = _build_artifact(2, "artifact_b", 300)
 
@@ -212,7 +173,6 @@ def test_disk_accepts_artifacts_that_fit_in_used_space_budget() -> None:
         id=1,
         name="disk_a",
         total_capacity_bytes=1_000,
-        free_space_bytes=500,
         health_score=0.8,
         artifacts=[artifact_a, artifact_b],
     )
@@ -228,7 +188,6 @@ def test_disk_raises_when_artifact_list_contains_duplicate_artifact_objects() ->
             id=1,
             name="disk_a",
             total_capacity_bytes=1_000,
-            free_space_bytes=800,
             health_score=0.8,
             artifacts=[artifact_a, artifact_a],
         )
@@ -243,25 +202,23 @@ def test_disk_raises_when_artifact_list_contains_duplicate_artifact_ids() -> Non
             id=1,
             name="disk_a",
             total_capacity_bytes=1_000,
-            free_space_bytes=500,
             health_score=0.8,
             artifacts=[artifact_a_v1, artifact_a_v2],
         )
 
 
-def test_disk_raises_when_artifact_does_not_fit_in_available_used_space_budget() -> None:
-    artifact_a = _build_artifact(1, "artifact_a", 200)
-    artifact_b = _build_artifact(2, "artifact_b", 400)
+def test_disk_raises_when_artifacts_exceed_total_capacity() -> None:
+    artifact_a = _build_artifact(1, "artifact_a", 600)
+    artifact_b = _build_artifact(2, "artifact_b", 500)
 
     with pytest.raises(
         ValueError,
-        match="Disk artifacts exceed the allowed used space.",
+        match="Disk artifacts exceed total capacity.",
     ):
         Disk(
             id=1,
             name="disk_a",
             total_capacity_bytes=1_000,
-            free_space_bytes=500,
             health_score=0.8,
             artifacts=[artifact_a, artifact_b],
         )
@@ -275,12 +232,26 @@ def test_disk_get_used_space_bytes_returns_sum_of_most_recent_artifact_version_s
         id=1,
         name="disk_a",
         total_capacity_bytes=1_000,
-        free_space_bytes=500,
         health_score=0.8,
         artifacts=[artifact_a, artifact_b],
     )
 
     assert disk.get_used_space_bytes() == 500
+
+
+def test_disk_free_space_bytes_is_derived_from_total_capacity_and_artifacts() -> None:
+    artifact_a = _build_artifact(1, "artifact_a", 200)
+    artifact_b = _build_artifact(2, "artifact_b", 300)
+
+    disk = Disk(
+        id=1,
+        name="disk_a",
+        total_capacity_bytes=1_000,
+        health_score=0.8,
+        artifacts=[artifact_a, artifact_b],
+    )
+
+    assert disk.free_space_bytes == 500
 
 
 def test_disk_can_store_size_returns_true_when_size_fits_remaining_free_space() -> None:
@@ -291,7 +262,6 @@ def test_disk_can_store_size_returns_true_when_size_fits_remaining_free_space() 
         id=1,
         name="disk_a",
         total_capacity_bytes=1_000,
-        free_space_bytes=500,
         health_score=0.8,
         artifacts=[artifact_a, artifact_b],
     )
@@ -307,7 +277,6 @@ def test_disk_can_store_size_returns_false_when_size_exceeds_remaining_free_spac
         id=1,
         name="disk_a",
         total_capacity_bytes=1_000,
-        free_space_bytes=500,
         health_score=0.8,
         artifacts=[artifact_a, artifact_b],
     )
@@ -348,12 +317,12 @@ def test_disk_uses_most_recent_artifact_version_size_when_calculating_used_space
         id=1,
         name="disk_a",
         total_capacity_bytes=1_000,
-        free_space_bytes=650,
         health_score=0.8,
         artifacts=[artifact],
     )
 
     assert disk.get_used_space_bytes() == 350
+    assert disk.free_space_bytes == 650
 
 
 def test_disk_raises_when_artifact_without_versions_is_passed_in_artifacts_list() -> None:
@@ -373,7 +342,6 @@ def test_disk_raises_when_artifact_without_versions_is_passed_in_artifacts_list(
             id=1,
             name="disk_a",
             total_capacity_bytes=1_000,
-            free_space_bytes=1_000,
             health_score=0.8,
             artifacts=[artifact_without_versions],
         )
