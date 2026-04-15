@@ -18,7 +18,7 @@ The system helps users decide **where artifacts should be stored** based on disk
 ## Main Idea 
   
 Cold storage is useful, but offline disks are inconvenient to manage manually over time.
-
+ 
 Coldpool helps by:
 - tracking available hard disks
 - tracking disk size and storage usage
