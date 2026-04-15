@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from coldpool_server.artifact.artifact_version import ArtifactVersion
+from coldpool_server.artifact.artifact import Artifact
+
 
 @dataclass(slots=True)
 class ArtifactCopy:
     """A physical stored copy of one artifact version on one disk."""
 
     id: int
-    artifact_version_id: int
+    artifact_version: ArtifactVersion
     copy_index: int
     disk_id: int
     disk_path: str
@@ -22,9 +25,6 @@ class ArtifactCopy:
         if self.id <= 0:
             raise ValueError("ArtifactCopy id must be > 0.")
 
-        if self.artifact_version_id <= 0:
-            raise ValueError("ArtifactCopy artifact_version_id must be > 0.")
-
         if self.copy_index < 1:
             raise ValueError("ArtifactCopy copy_index must be >= 1.")
 
@@ -36,6 +36,16 @@ class ArtifactCopy:
 
         if self.status not in self.VALID_STATUSES:
             raise ValueError("ArtifactCopy status must be one of: verified, stale, missing.")
+
+    @property
+    def size_bytes(self) -> int:
+        """Return the size of this copy derived from its artifact version."""
+        return self.artifact_version.size_bytes
+
+    @property
+    def artifact(self) -> Artifact:
+        """Return the logical artifact that owns this copy through its version."""
+        return self.artifact_version.artifact
 
     def is_missing(self) -> bool:
         """Return whether this copy is currently missing."""

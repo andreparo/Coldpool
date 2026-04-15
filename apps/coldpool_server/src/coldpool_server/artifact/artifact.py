@@ -39,8 +39,8 @@ class Artifact:
 
     def add_version(self, version: ArtifactVersion) -> None:
         """Add a new version to this artifact."""
-        if version.artifact_id != self.id:
-            raise ValueError("ArtifactVersion artifact_id does not match Artifact id.")
+        if version.artifact is not self:
+            raise ValueError("ArtifactVersion artifact does not match Artifact.")
 
         if any(existing_version.id == version.id for existing_version in self._versions):
             raise ValueError(f"ArtifactVersion with id={version.id} already exists in this artifact.")

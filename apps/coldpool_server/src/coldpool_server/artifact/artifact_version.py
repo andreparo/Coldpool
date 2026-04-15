@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from coldpool_server.artifact.artifact_copy import ArtifactCopy
+from coldpool_server.artifact.artifact import Artifact
 
 
 @dataclass(slots=True)
@@ -11,7 +12,7 @@ class ArtifactVersion:
     """A concrete stored version of one logical artifact."""
 
     id: int
-    artifact_id: int
+    artifact: Artifact
     created_at: datetime
     size_bytes: int
     version_label: str | None = None
@@ -23,9 +24,6 @@ class ArtifactVersion:
         """Validate ArtifactVersion field values after initialization."""
         if self.id <= 0:
             raise ValueError("ArtifactVersion id must be > 0.")
-
-        if self.artifact_id <= 0:
-            raise ValueError("ArtifactVersion artifact_id must be > 0.")
 
         if self.size_bytes < 0:
             raise ValueError("ArtifactVersion size_bytes must be >= 0.")
@@ -47,8 +45,8 @@ class ArtifactVersion:
         seen_copy_indexes: set[int] = set()
 
         for artifact_copy in self.copies:
-            if artifact_copy.artifact_version_id != self.id:
-                raise ValueError("ArtifactCopy artifact_version_id does not match ArtifactVersion id.")
+            if artifact_copy.artifact_version is not self:
+                raise ValueError("ArtifactCopy artifact_version does not match ArtifactVersion.")
 
             if artifact_copy.id in seen_copy_ids:
                 raise ValueError(f"ArtifactCopy with id={artifact_copy.id} already exists in this artifact version.")
@@ -60,8 +58,8 @@ class ArtifactVersion:
 
     def add_copy(self, artifact_copy: ArtifactCopy) -> None:
         """Add a new copy to this artifact version."""
-        if artifact_copy.artifact_version_id != self.id:
-            raise ValueError("ArtifactCopy artifact_version_id does not match ArtifactVersion id.")
+        if artifact_copy.artifact_version is not self:
+            raise ValueError("ArtifactCopy artifact_version does not match ArtifactVersion.")
 
         if any(existing_copy.id == artifact_copy.id for existing_copy in self.copies):
             raise ValueError(f"ArtifactCopy with id={artifact_copy.id} already exists in this artifact version.")
