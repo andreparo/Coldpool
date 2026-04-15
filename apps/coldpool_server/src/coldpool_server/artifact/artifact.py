@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+
 from coldpool_server.artifact.artifact_version import ArtifactVersion
 
 
 @dataclass(slots=True)
 class Artifact:
+    """A logical backup artifact that can contain multiple versions."""
+
     id: int
     name: str
     priority_score: int
@@ -16,6 +18,7 @@ class Artifact:
     _versions: list[ArtifactVersion] = field(default_factory=list, init=False, repr=False)
 
     def __post_init__(self) -> None:
+        """Validate Artifact field values after initialization."""
         if self.id <= 0:
             raise ValueError("Artifact id must be > 0.")
 
@@ -35,6 +38,7 @@ class Artifact:
             raise ValueError("Artifact shelf_life_days must be >= 0 if provided.")
 
     def add_version(self, version: ArtifactVersion) -> None:
+        """Add a new version to this artifact."""
         if version.artifact_id != self.id:
             raise ValueError("ArtifactVersion artifact_id does not match Artifact id.")
 
@@ -44,6 +48,7 @@ class Artifact:
         self._versions.append(version)
 
     def remove_version(self, version_id: int) -> None:
+        """Remove an existing version from this artifact by version id."""
         for index, version in enumerate(self._versions):
             if version.id == version_id:
                 del self._versions[index]
@@ -52,9 +57,11 @@ class Artifact:
         raise ValueError(f"ArtifactVersion with id={version_id} was not found.")
 
     def get_versions(self) -> list[ArtifactVersion]:
+        """Return a copy of the versions currently stored in this artifact."""
         return list(self._versions)
 
     def get_most_recent_version(self) -> ArtifactVersion | None:
+        """Return the most recent version of this artifact, if any."""
         if not self._versions:
             return None
 

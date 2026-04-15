@@ -6,6 +6,8 @@ from datetime import datetime
 
 @dataclass(frozen=True, slots=True)
 class ArtifactVersion:
+    """A concrete stored version of one logical artifact."""
+
     id: int
     artifact_id: int
     created_at: datetime
@@ -15,6 +17,7 @@ class ArtifactVersion:
     expires_at: datetime | None = None
 
     def __post_init__(self) -> None:
+        """Validate ArtifactVersion field values after initialization."""
         if self.id <= 0:
             raise ValueError("ArtifactVersion id must be > 0.")
 
