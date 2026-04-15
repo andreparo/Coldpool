@@ -12,7 +12,6 @@ class Disk:
     id: int
     name: str
     total_capacity_bytes: int
-    free_space_bytes: int
     health_score: float
     location: str | None = None
     state: str = "offline"
@@ -31,12 +30,6 @@ class Disk:
         if self.total_capacity_bytes < 0:
             raise ValueError("Disk total_capacity_bytes must be >= 0.")
 
-        if self.free_space_bytes < 0:
-            raise ValueError("Disk free_space_bytes must be >= 0.")
-
-        if self.free_space_bytes > self.total_capacity_bytes:
-            raise ValueError("Disk free_space_bytes must be <= total_capacity_bytes.")
-
         if not 0.0 <= self.health_score <= 1.0:
             raise ValueError("Disk health_score must be between 0.0 and 1.0.")
 
@@ -48,7 +41,12 @@ class Disk:
 
         self._validate_artifacts_have_no_duplicates()
         self._validate_artifacts_have_most_recent_versions()
-        self._validate_artifacts_fit_used_space_budget()
+        self._validate_artifacts_fit_total_capacity()
+
+    @property
+    def free_space_bytes(self) -> int:
+        """Return the remaining free space derived from stored artifacts."""
+        return self.total_capacity_bytes - self.get_used_space_bytes()
 
     def _validate_artifacts_have_no_duplicates(self) -> None:
         """Validate that the artifacts list does not contain duplicates."""
@@ -65,10 +63,10 @@ class Disk:
             if artifact.get_most_recent_version() is None:
                 raise ValueError("Disk artifacts must have a most recent version.")
 
-    def _validate_artifacts_fit_used_space_budget(self) -> None:
-        """Validate that artifact sizes fit inside the disk used-space budget."""
-        if self.get_used_space_bytes() > self.total_capacity_bytes - self.free_space_bytes:
-            raise ValueError("Disk artifacts exceed the allowed used space.")
+    def _validate_artifacts_fit_total_capacity(self) -> None:
+        """Validate that artifact sizes fit inside the disk total capacity."""
+        if self.get_used_space_bytes() > self.total_capacity_bytes:
+            raise ValueError("Disk artifacts exceed total capacity.")
 
     def can_store_size(self, size_bytes: int) -> bool:
         """Return whether the disk can store a payload of the given size."""
