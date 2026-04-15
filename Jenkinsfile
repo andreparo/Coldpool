@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('VERSIONING') {
             agent {
-                docker {
+                dockerContainer {
                     label 'linux-docker'
                     image 'coldpool-ci-base:1'
                 }
@@ -48,7 +48,7 @@ pipeline {
 
         stage('STRUCTURE') {
             agent {
-                docker {
+                dockerContainer {
                     label 'linux-docker'
                     image 'coldpool-ci-base:1'
                 }
@@ -60,7 +60,7 @@ pipeline {
 
         stage('FORMAT') {
             agent {
-                docker {
+                dockerContainer {
                     label 'linux-docker'
                     image 'coldpool-ci-base:1'
                 }
