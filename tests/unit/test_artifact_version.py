@@ -9,14 +9,21 @@ from coldpool_server.artifact.artifact_copy import ArtifactCopy
 from coldpool_server.artifact.artifact_version import ArtifactVersion
 
 
-def test_artifact_version_is_created_with_valid_data() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
+def _build_artifact(
+    artifact_id: int = 1,
+    name: str = "photos_backup",
+) -> Artifact:
+    return Artifact(
+        id=artifact_id,
+        name=name,
         priority_score=100,
         desired_copy_count=2,
         artifact_type="zip",
     )
+
+
+def test_artifact_version_is_created_with_valid_data() -> None:
+    artifact = _build_artifact()
     created_at = datetime(2026, 4, 15, 10, 30, 0)
     expires_at = datetime(2026, 5, 15, 10, 30, 0)
 
@@ -42,13 +49,7 @@ def test_artifact_version_is_created_with_valid_data() -> None:
 
 
 def test_artifact_version_raises_when_id_is_not_positive() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
 
     with pytest.raises(ValueError, match="ArtifactVersion id must be > 0."):
         ArtifactVersion(
@@ -61,13 +62,7 @@ def test_artifact_version_raises_when_id_is_not_positive() -> None:
 
 
 def test_artifact_version_raises_when_size_bytes_is_negative() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
 
     with pytest.raises(
         ValueError,
@@ -83,13 +78,7 @@ def test_artifact_version_raises_when_size_bytes_is_negative() -> None:
 
 
 def test_artifact_version_raises_when_version_label_is_blank() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
 
     with pytest.raises(
         ValueError,
@@ -106,13 +95,7 @@ def test_artifact_version_raises_when_version_label_is_blank() -> None:
 
 
 def test_artifact_version_raises_when_checksum_is_blank() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
 
     with pytest.raises(
         ValueError,
@@ -129,13 +112,7 @@ def test_artifact_version_raises_when_checksum_is_blank() -> None:
 
 
 def test_artifact_version_raises_when_expires_at_is_before_created_at() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
 
     with pytest.raises(
         ValueError,
@@ -152,13 +129,7 @@ def test_artifact_version_raises_when_expires_at_is_before_created_at() -> None:
 
 
 def test_artifact_version_allows_optional_fields_to_be_none() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
 
     artifact_version = ArtifactVersion(
         id=1,
@@ -177,13 +148,7 @@ def test_artifact_version_allows_optional_fields_to_be_none() -> None:
 
 
 def test_add_copy_saves_copy_in_artifact_version() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -213,13 +178,7 @@ def test_add_copy_saves_copy_in_artifact_version() -> None:
 
 
 def test_remove_copy_removes_previously_added_copy() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -248,20 +207,8 @@ def test_remove_copy_removes_previously_added_copy() -> None:
 
 
 def test_add_copy_raises_when_copy_artifact_version_does_not_match() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-    other_artifact = Artifact(
-        id=2,
-        name="videos_backup",
-        priority_score=50,
-        desired_copy_count=1,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
+    other_artifact = _build_artifact(artifact_id=2, name="videos_backup")
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -298,13 +245,7 @@ def test_add_copy_raises_when_copy_artifact_version_does_not_match() -> None:
 
 
 def test_add_copy_raises_when_copy_id_already_exists() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -340,13 +281,7 @@ def test_add_copy_raises_when_copy_id_already_exists() -> None:
 
 
 def test_add_copy_raises_when_copy_index_already_exists() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -382,13 +317,7 @@ def test_add_copy_raises_when_copy_index_already_exists() -> None:
 
 
 def test_remove_copy_raises_when_copy_does_not_exist() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -404,13 +333,7 @@ def test_remove_copy_raises_when_copy_does_not_exist() -> None:
 
 
 def test_get_copy_by_index_returns_matching_copy() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -448,13 +371,7 @@ def test_get_copy_by_index_returns_matching_copy() -> None:
 
 
 def test_get_copy_by_index_returns_none_when_missing() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
     artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
@@ -471,14 +388,8 @@ def test_get_copy_by_index_returns_none_when_missing() -> None:
 
 
 def test_artifact_version_accepts_valid_initial_copies() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-    artifact_version = ArtifactVersion(
+    artifact = _build_artifact()
+    base_version = ArtifactVersion(
         id=1,
         artifact=artifact,
         created_at=datetime(2026, 4, 15, 10, 30, 0),
@@ -489,7 +400,7 @@ def test_artifact_version_accepts_valid_initial_copies() -> None:
     )
     first_copy = ArtifactCopy(
         id=1,
-        artifact_version=artifact_version,
+        artifact_version=base_version,
         copy_index=1,
         disk_id=10,
         disk_path="/mnt/disk_a/photos_backup_v1.zip",
@@ -498,7 +409,7 @@ def test_artifact_version_accepts_valid_initial_copies() -> None:
     )
     second_copy = ArtifactCopy(
         id=2,
-        artifact_version=artifact_version,
+        artifact_version=base_version,
         copy_index=2,
         disk_id=11,
         disk_path="/mnt/disk_b/photos_backup_v1.zip",
@@ -506,7 +417,7 @@ def test_artifact_version_accepts_valid_initial_copies() -> None:
         status="verified",
     )
 
-    artifact_version_with_copies = ArtifactVersion(
+    artifact_version = ArtifactVersion(
         id=1,
         artifact=artifact,
         created_at=datetime(2026, 4, 15, 10, 30, 0),
@@ -516,24 +427,12 @@ def test_artifact_version_accepts_valid_initial_copies() -> None:
         copies=[first_copy, second_copy],
     )
 
-    assert artifact_version_with_copies.get_copies() == [first_copy, second_copy]
+    assert artifact_version.get_copies() == [first_copy, second_copy]
 
 
 def test_artifact_version_raises_when_initial_copy_has_wrong_artifact_version() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-    other_artifact = Artifact(
-        id=2,
-        name="videos_backup",
-        priority_score=50,
-        desired_copy_count=1,
-        artifact_type="zip",
-    )
+    artifact = _build_artifact()
+    other_artifact = _build_artifact(artifact_id=2, name="videos_backup")
     other_version = ArtifactVersion(
         id=2,
         artifact=other_artifact,
@@ -569,14 +468,8 @@ def test_artifact_version_raises_when_initial_copy_has_wrong_artifact_version() 
 
 
 def test_artifact_version_raises_when_initial_copy_ids_are_duplicated() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-    artifact_version = ArtifactVersion(
+    artifact = _build_artifact()
+    base_version = ArtifactVersion(
         id=1,
         artifact=artifact,
         created_at=datetime(2026, 4, 15, 10, 30, 0),
@@ -587,7 +480,7 @@ def test_artifact_version_raises_when_initial_copy_ids_are_duplicated() -> None:
     )
     first_copy = ArtifactCopy(
         id=1,
-        artifact_version=artifact_version,
+        artifact_version=base_version,
         copy_index=1,
         disk_id=10,
         disk_path="/mnt/disk_a/photos_backup_v1.zip",
@@ -596,7 +489,7 @@ def test_artifact_version_raises_when_initial_copy_ids_are_duplicated() -> None:
     )
     duplicate_id_copy = ArtifactCopy(
         id=1,
-        artifact_version=artifact_version,
+        artifact_version=base_version,
         copy_index=2,
         disk_id=11,
         disk_path="/mnt/disk_b/photos_backup_v1.zip",
@@ -617,14 +510,8 @@ def test_artifact_version_raises_when_initial_copy_ids_are_duplicated() -> None:
 
 
 def test_artifact_version_raises_when_initial_copy_indexes_are_duplicated() -> None:
-    artifact = Artifact(
-        id=1,
-        name="photos_backup",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-    artifact_version = ArtifactVersion(
+    artifact = _build_artifact()
+    base_version = ArtifactVersion(
         id=1,
         artifact=artifact,
         created_at=datetime(2026, 4, 15, 10, 30, 0),
@@ -635,7 +522,7 @@ def test_artifact_version_raises_when_initial_copy_indexes_are_duplicated() -> N
     )
     first_copy = ArtifactCopy(
         id=1,
-        artifact_version=artifact_version,
+        artifact_version=base_version,
         copy_index=1,
         disk_id=10,
         disk_path="/mnt/disk_a/photos_backup_v1.zip",
@@ -644,7 +531,7 @@ def test_artifact_version_raises_when_initial_copy_indexes_are_duplicated() -> N
     )
     duplicate_index_copy = ArtifactCopy(
         id=2,
-        artifact_version=artifact_version,
+        artifact_version=base_version,
         copy_index=1,
         disk_id=11,
         disk_path="/mnt/disk_b/photos_backup_v1.zip",
