@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        NPM_CACHE_DIR = '/mnt/1000E/jenkins-agent/cache/npm'
+        PROJECT_CI_IMAGE = "coldpool-project-ci:${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -53,6 +53,16 @@ pipeline {
             }
         }
 
+        stage('PREPARE_CI_IMAGE') {
+            agent { label 'linux-docker' }
+
+            steps {
+                sh '''
+                    bash ci/prepare_ci_image.sh "$PROJECT_CI_IMAGE"
+                '''
+            }
+        }
+
         stage('PRE_TESTS') {
             parallel {
                 stage('STRUCTURE') {
@@ -61,10 +71,8 @@ pipeline {
                     steps {
                         sh '''
                             docker run --rm \
-                              -e HOST_WORKSPACE="$WORKSPACE" \
-                              -v "$WORKSPACE":/workspace \
                               -w /workspace \
-                              coldpool-ci-base:1 \
+                              "$PROJECT_CI_IMAGE" \
                               bash ci/structure.sh
                         '''
                     }
@@ -75,14 +83,9 @@ pipeline {
 
                     steps {
                         sh '''
-                            mkdir -p "$NPM_CACHE_DIR"
-
                             docker run --rm \
-                              -e HOST_WORKSPACE="$WORKSPACE" \
-                              -v "$WORKSPACE":/workspace \
-                              -v "$NPM_CACHE_DIR":/root/.npm \
                               -w /workspace \
-                              coldpool-ci-base:1 \
+                              "$PROJECT_CI_IMAGE" \
                               bash ci/format.sh
                         '''
                     }
@@ -93,18 +96,23 @@ pipeline {
 
                     steps {
                         sh '''
-                            mkdir -p "$NPM_CACHE_DIR"
-
                             docker run --rm \
-                              -e HOST_WORKSPACE="$WORKSPACE" \
-                              -v "$WORKSPACE":/workspace \
-                              -v "$NPM_CACHE_DIR":/root/.npm \
                               -w /workspace \
-                              coldpool-ci-base:1 \
+                              "$PROJECT_CI_IMAGE" \
                               bash ci/lint.sh
                         '''
                     }
                 }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                sh '''
+                    docker image rm -f "$PROJECT_CI_IMAGE" || true
+                '''
             }
         }
     }
