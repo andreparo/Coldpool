@@ -5,20 +5,91 @@ pipeline {
         timestamps()
     }
 
+    environment {
+        NPM_CACHE_DIR = '/mnt/1000E/jenkins-cache/npm'
+    }
+
     stages {
-        stage('VERSIONING') {
+        stage('PRE_TESTS') {
+            parallel {
+                stage('VERSIONING') {
+                    agent { label 'linux-docker' }
+
+                    steps {
+                        sh '''
+                            mkdir -p "$NPM_CACHE_DIR"
+
+                            docker run --rm \
+                              -e HOST_WORKSPACE="$WORKSPACE" \
+                              -v "$WORKSPACE":/workspace \
+                              -v "$NPM_CACHE_DIR":/root/.npm \
+                              -w /workspace \
+                              coldpool-ci-base:1 \
+                              bash ci/versioning.sh
+                        '''
+                    }
+                }
+
+                stage('STRUCTURE') {
+                    agent { label 'linux-docker' }
+
+                    steps {
+                        sh '''
+                            mkdir -p "$NPM_CACHE_DIR"
+
+                            docker run --rm \
+                              -e HOST_WORKSPACE="$WORKSPACE" \
+                              -v "$WORKSPACE":/workspace \
+                              -v "$NPM_CACHE_DIR":/root/.npm \
+                              -w /workspace \
+                              coldpool-ci-base:1 \
+                              bash ci/structure.sh
+                        '''
+                    }
+                }
+
+                stage('FORMAT') {
+                    agent { label 'linux-docker' }
+
+                    steps {
+                        sh '''
+                            mkdir -p "$NPM_CACHE_DIR"
+
+                            docker run --rm \
+                              -e HOST_WORKSPACE="$WORKSPACE" \
+                              -v "$WORKSPACE":/workspace \
+                              -v "$NPM_CACHE_DIR":/root/.npm \
+                              -w /workspace \
+                              coldpool-ci-base:1 \
+                              bash ci/format.sh
+                        '''
+                    }
+                }
+
+                stage('LINT') {
+                    agent { label 'linux-docker' }
+
+                    steps {
+                        sh '''
+                            mkdir -p "$NPM_CACHE_DIR"
+
+                            docker run --rm \
+                              -e HOST_WORKSPACE="$WORKSPACE" \
+                              -v "$WORKSPACE":/workspace \
+                              -v "$NPM_CACHE_DIR":/root/.npm \
+                              -w /workspace \
+                              coldpool-ci-base:1 \
+                              bash ci/lint.sh
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('SET_BUILD_METADATA') {
             agent { label 'linux-docker' }
 
             steps {
-                sh '''
-                    docker run --rm \
-                      -e HOST_WORKSPACE="$WORKSPACE" \
-                      -v "$WORKSPACE":/workspace \
-                      -w /workspace \
-                      coldpool-ci-base:1 \
-                      bash ci/versioning.sh
-                '''
-
                 script {
                     def envText = readFile('ci_version.env').trim()
                     def data = [:]
@@ -49,53 +120,71 @@ pipeline {
             }
         }
 
-        stage('QUALITY_GATES') {
+        /*
+        stage('TEST_RUN_1') {
             parallel {
-                stage('STRUCTURE') {
+                stage('SMOKE') {
                     agent { label 'linux-docker' }
-
                     steps {
-                        sh '''
-                            docker run --rm \
-                              -e HOST_WORKSPACE="$WORKSPACE" \
-                              -v "$WORKSPACE":/workspace \
-                              -w /workspace \
-                              coldpool-ci-base:1 \
-                              bash ci/structure.sh
-                        '''
+                        sh 'echo TODO: bash ci/smoke.sh'
                     }
                 }
 
-                stage('FORMAT') {
+                stage('UNIT') {
                     agent { label 'linux-docker' }
-
                     steps {
-                        sh '''
-                            docker run --rm \
-                              -e HOST_WORKSPACE="$WORKSPACE" \
-                              -v "$WORKSPACE":/workspace \
-                              -w /workspace \
-                              coldpool-ci-base:1 \
-                              bash ci/format.sh
-                        '''
+                        sh 'echo TODO: bash ci/unit.sh'
                     }
                 }
 
-                stage('LINT') {
+                stage('COMPONENT') {
                     agent { label 'linux-docker' }
-
                     steps {
-                        sh '''
-                            docker run --rm \
-                              -e HOST_WORKSPACE="$WORKSPACE" \
-                              -v "$WORKSPACE":/workspace \
-                              -w /workspace \
-                              coldpool-ci-base:1 \
-                              bash ci/lint.sh
-                        '''
+                        sh 'echo TODO: bash ci/component.sh'
+                    }
+                }
+
+                stage('TACTICAL_INTEGRATION') {
+                    agent { label 'linux-docker' }
+                    steps {
+                        sh 'echo TODO: bash ci/integration.sh'
                     }
                 }
             }
         }
+
+        stage('TEST_BUILD_GENERATION_AND_DEPLOYMENT') {
+            agent { label 'linux-docker' }
+
+            steps {
+                sh 'echo TODO: bash ci/build.sh'
+            }
+        }
+
+        stage('TEST_RUN_2') {
+            parallel {
+                stage('ACCEPTANCE') {
+                    agent { label 'linux-docker' }
+                    steps {
+                        sh 'echo TODO: bash ci/acceptance.sh'
+                    }
+                }
+
+                stage('LONG_INTEGRATION') {
+                    agent { label 'linux-docker' }
+                    steps {
+                        sh 'echo TODO: bash ci/long_integration.sh'
+                    }
+                }
+
+                stage('REPORTS') {
+                    agent { label 'linux-docker' }
+                    steps {
+                        sh 'echo TODO: bash ci/reports.sh'
+                    }
+                }
+            }
+        }
+        */
     }
 }
