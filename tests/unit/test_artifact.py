@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from coldpool_server.artifact import Artifact
+from coldpool_server.artifact import Artifact 
 from coldpool_server.artifact_version import ArtifactVersion
 
 
