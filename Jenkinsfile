@@ -39,5 +39,10 @@ pipeline {
                 }
             }
         }
+        stage('STRUCTURE') {
+            steps {
+                sh 'bash ci/structure.sh'
+            }
+        }
     }
 }
