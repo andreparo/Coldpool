@@ -5,10 +5,6 @@ pipeline {
         timestamps()
     }
 
-    environment {
-        PROJECT_CI_IMAGE = "coldpool-project-ci:${env.BUILD_NUMBER}"
-    }
-
     stages {
         stage('VERSIONING') {
             agent { label 'linux-docker' }
@@ -53,13 +49,39 @@ pipeline {
             }
         }
 
-        stage('PREPARE_CI_IMAGE') {
+        stage('SETUP_IMAGES') {
             agent { label 'linux-docker' }
 
             steps {
                 sh '''
-                    bash ci/prepare_ci_image.sh "$PROJECT_CI_IMAGE"
+                    bash ci/docker/setup/setup_images.sh "$BUILD_NUMBER" "$SHORT_SHA"
                 '''
+
+                script {
+                    def envText = readFile('ci_images.env').trim()
+                    def data = [:]
+
+                    envText.split('\n').each { line ->
+                        def parts = line.split('=', 2)
+                        if (parts.length == 2) {
+                            data[parts[0].trim()] = parts[1].trim()
+                        }
+                    }
+
+                    if (!data['BASE_IMAGE']) {
+                        error('BASE_IMAGE missing from ci_images.env')
+                    }
+                    if (!data['DEPENDENCY_IMAGE']) {
+                        error('DEPENDENCY_IMAGE missing from ci_images.env')
+                    }
+                    if (!data['COMMIT_IMAGE']) {
+                        error('COMMIT_IMAGE missing from ci_images.env')
+                    }
+
+                    env.BASE_IMAGE = data['BASE_IMAGE']
+                    env.DEPENDENCY_IMAGE = data['DEPENDENCY_IMAGE']
+                    env.COMMIT_IMAGE = data['COMMIT_IMAGE']
+                }
             }
         }
 
@@ -72,7 +94,7 @@ pipeline {
                         sh '''
                             docker run --rm \
                               -w /workspace \
-                              "$PROJECT_CI_IMAGE" \
+                              "$COMMIT_IMAGE" \
                               bash ci/structure.sh
                         '''
                     }
@@ -85,7 +107,7 @@ pipeline {
                         sh '''
                             docker run --rm \
                               -w /workspace \
-                              "$PROJECT_CI_IMAGE" \
+                              "$COMMIT_IMAGE" \
                               bash ci/format.sh
                         '''
                     }
@@ -98,7 +120,7 @@ pipeline {
                         sh '''
                             docker run --rm \
                               -w /workspace \
-                              "$PROJECT_CI_IMAGE" \
+                              "$COMMIT_IMAGE" \
                               bash ci/lint.sh
                         '''
                     }
@@ -111,7 +133,7 @@ pipeline {
         always {
             node('linux-docker') {
                 sh '''
-                    docker image rm -f "$PROJECT_CI_IMAGE" || true
+                    docker image rm -f "$COMMIT_IMAGE" || true
                 '''
             }
         }
