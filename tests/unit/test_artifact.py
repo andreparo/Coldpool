@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from coldpool_server.artifact import Artifact 
-from coldpool_server.artifact_version import ArtifactVersion
+from coldpool_server.artifact.artifact import Artifact # type: ignore
+from coldpool_server.artifact.artifact_version import ArtifactVersion # type: ignore
 
 
 def test_add_version_saves_version_in_artifact() -> None:

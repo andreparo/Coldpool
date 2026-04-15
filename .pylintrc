@@ -9,6 +9,7 @@ jobs=4
 # Ignore CI scripts directory.
 ignore-paths=
     (^|.*/|.*\\)ci($|/.*|\\.*)
+    (^|.*/|.*\\)tests($|/.*|\\.*)
 
 # Enable selected checks
 enable=
