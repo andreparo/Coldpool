@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from coldpool_server.artifact.artifact_version import ArtifactVersion
-from coldpool_server.artifact.artifact import Artifact
+if TYPE_CHECKING:
+    from coldpool_server.artifact.artifact import Artifact
+    from coldpool_server.artifact.artifact_version import ArtifactVersion
 
 
 @dataclass(slots=True)
