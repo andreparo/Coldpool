@@ -4,7 +4,7 @@ Coldpool is a Linux self-hosted web application for managing **cold backup stora
 
 It is designed for people who keep backup artifacts on **new, used, or heavily used disks**, especially when those disks are inexpensive, mixed in size, or of uncertain long-term reliability.
 
-## Purpose
+## Purpose 
 
 The goal of Coldpool is to provide a **centralized interface** to organize and manage backup artifacts that are stored on offline disks.
 
