@@ -71,7 +71,6 @@ def top_entry_matches_commit(changelog_text: str, commit_subject: str) -> tuple[
 
 
 def main() -> int:
-    """Main"""
     try:
         changelog_text = read_changelog()
         commit_subject = get_commit_subject()
