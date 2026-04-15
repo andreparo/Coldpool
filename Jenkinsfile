@@ -113,41 +113,37 @@ pipeline {
                     }
                 }
 
-                stage('LINT') {
-                    parallel {
-                        stage('PYTHON') {
-                            agent { label 'linux-docker' }
+                stage('LINT_PYTHON') {
+                    agent { label 'linux-docker' }
 
-                            steps {
-                                sh '''
-                                    docker run --rm \
-                                      -w /workspace \
-                                      "$COMMIT_IMAGE" \
-                                      bash ci/lint_python.sh
-                                '''
-                            }
-                        }
+                    steps {
+                        sh '''
+                            docker run --rm \
+                              -w /workspace \
+                              "$COMMIT_IMAGE" \
+                              bash ci/lint_python.sh
+                        '''
+                    }
+                }
 
-                        stage('FRONTEND') {
-                            agent { label 'linux-docker' }
+                stage('LINT_FRONTEND') {
+                    agent { label 'linux-docker' }
 
-                            steps {
-                                sh '''
-                                    mkdir -p /mnt/1000E/jenkins-agent/cache/eslint
-                                    mkdir -p /mnt/1000E/jenkins-agent/cache/tsc
-                                    chown -R jenkins-agent:jenkins-agent /mnt/1000E/jenkins-agent/cache || true
+                    steps {
+                        sh '''
+                            mkdir -p /mnt/1000E/jenkins-agent/cache/eslint
+                            mkdir -p /mnt/1000E/jenkins-agent/cache/tsc
+                            chown -R jenkins-agent:jenkins-agent /mnt/1000E/jenkins-agent/cache || true
 
-                                    docker run --rm \
-                                      -e ESLINT_CACHE_FILE=/ci-cache/eslint/.eslintcache \
-                                      -e TSC_BUILDINFO_FILE=/ci-cache/tsc/tsconfig.app.tsbuildinfo \
-                                      -v /mnt/1000E/jenkins-agent/cache/eslint:/ci-cache/eslint \
-                                      -v /mnt/1000E/jenkins-agent/cache/tsc:/ci-cache/tsc \
-                                      -w /workspace \
-                                      "$COMMIT_IMAGE" \
-                                      bash ci/lint_frontend.sh
-                                '''
-                            }
-                        }
+                            docker run --rm \
+                              -e ESLINT_CACHE_FILE=/ci-cache/eslint/.eslintcache \
+                              -e TSC_BUILDINFO_FILE=/ci-cache/tsc/tsconfig.app.tsbuildinfo \
+                              -v /mnt/1000E/jenkins-agent/cache/eslint:/ci-cache/eslint \
+                              -v /mnt/1000E/jenkins-agent/cache/tsc:/ci-cache/tsc \
+                              -w /workspace \
+                              "$COMMIT_IMAGE" \
+                              bash ci/lint_frontend.sh
+                        '''
                     }
                 }
             }
