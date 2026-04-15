@@ -5,343 +5,383 @@ from datetime import datetime
 import pytest
 
 from coldpool_server.artifact.artifact import Artifact
+from coldpool_server.artifact.artifact_copy import ArtifactCopy
 from coldpool_server.artifact.artifact_version import ArtifactVersion
-from coldpool_server.disk.disk import Disk
 
 
 def _build_artifact(
-    artifact_id: int,
-    name: str,
-    size_bytes: int,
-    created_at: datetime | None = None,
+    artifact_id: int = 1,
+    name: str = "photos_backup",
 ) -> Artifact:
-    artifact = Artifact(
+    return Artifact(
         id=artifact_id,
         name=name,
         priority_score=100,
         desired_copy_count=2,
         artifact_type="zip",
     )
-    artifact.add_version(
-        ArtifactVersion(
-            id=artifact_id,
-            artifact_id=artifact_id,
-            created_at=created_at or datetime(2026, 4, 15, 10, 30, 0),
-            size_bytes=size_bytes,
-            version_label="v1",
-            checksum=f"checksum-{artifact_id}",
-        )
-    )
-    return artifact
 
 
-def test_disk_is_created_with_valid_data() -> None:
-    disk = Disk(
+def test_artifact_version_is_created_with_valid_data() -> None:
+    artifact = _build_artifact()
+    created_at = datetime(2026, 4, 15, 10, 30, 0)
+    expires_at = datetime(2026, 5, 15, 10, 30, 0)
+
+    artifact_version = ArtifactVersion(
         id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        location="office",
-        state="offline",
-        artifacts=[],
+        artifact=artifact,
+        created_at=created_at,
+        size_bytes=1024,
+        version_label="v1",
+        checksum="abc123",
+        expires_at=expires_at,
+        copies=[],
     )
 
-    assert disk.id == 1
-    assert disk.name == "disk_a"
-    assert disk.total_capacity_bytes == 1_000
-    assert disk.free_space_bytes == 1_000
-    assert disk.health_score == 0.8
-    assert disk.location == "office"
-    assert disk.state == "offline"
+    assert artifact_version.id == 1
+    assert artifact_version.artifact == artifact
+    assert artifact_version.created_at == created_at
+    assert artifact_version.size_bytes == 1024
+    assert artifact_version.version_label == "v1"
+    assert artifact_version.checksum == "abc123"
+    assert artifact_version.expires_at == expires_at
+    assert artifact_version.get_copies() == []
 
 
-def test_disk_raises_when_id_is_not_positive() -> None:
-    with pytest.raises(ValueError, match="Disk id must be > 0."):
-        Disk(
+def test_artifact_version_raises_when_id_is_not_positive() -> None:
+    artifact = _build_artifact()
+
+    with pytest.raises(ValueError, match="ArtifactVersion id must be > 0."):
+        ArtifactVersion(
             id=0,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            artifacts=[],
-        )
-
-
-def test_disk_raises_when_name_is_blank() -> None:
-    with pytest.raises(ValueError, match="Disk name must not be empty."):
-        Disk(
-            id=1,
-            name="   ",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            artifacts=[],
-        )
-
-
-def test_disk_raises_when_total_capacity_bytes_is_negative() -> None:
-    with pytest.raises(
-        ValueError,
-        match="Disk total_capacity_bytes must be >= 0.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=-1,
-            health_score=0.8,
-            artifacts=[],
-        )
-
-
-def test_disk_raises_when_health_score_is_below_zero() -> None:
-    with pytest.raises(
-        ValueError,
-        match="Disk health_score must be between 0.0 and 1.0.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=-0.1,
-            artifacts=[],
-        )
-
-
-def test_disk_raises_when_health_score_is_above_one() -> None:
-    with pytest.raises(
-        ValueError,
-        match="Disk health_score must be between 0.0 and 1.0.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=1.1,
-            artifacts=[],
-        )
-
-
-def test_disk_raises_when_location_is_blank() -> None:
-    with pytest.raises(
-        ValueError,
-        match="Disk location must not be empty if provided.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            location="   ",
-            artifacts=[],
-        )
-
-
-def test_disk_raises_when_state_is_invalid() -> None:
-    with pytest.raises(
-        ValueError,
-        match="Disk state must be one of: online, offline, offsite, retired.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            state="broken",
-            artifacts=[],
-        )
-
-
-def test_disk_allows_valid_states() -> None:
-    valid_states = ["online", "offline", "offsite", "retired"]
-
-    for state in valid_states:
-        disk = Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            state=state,
-            artifacts=[],
-        )
-
-        assert disk.state == state
-
-
-def test_disk_accepts_artifacts_that_fit_in_total_capacity() -> None:
-    artifact_a = _build_artifact(1, "artifact_a", 200)
-    artifact_b = _build_artifact(2, "artifact_b", 300)
-
-    disk = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        artifacts=[artifact_a, artifact_b],
-    )
-
-    assert disk.artifacts == [artifact_a, artifact_b]
-
-
-def test_disk_raises_when_artifact_list_contains_duplicate_artifact_objects() -> None:
-    artifact_a = _build_artifact(1, "artifact_a", 200)
-
-    with pytest.raises(ValueError, match="Disk artifacts must not contain duplicates."):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            artifacts=[artifact_a, artifact_a],
-        )
-
-
-def test_disk_raises_when_artifact_list_contains_duplicate_artifact_ids() -> None:
-    artifact_a_v1 = _build_artifact(1, "artifact_a", 200)
-    artifact_a_v2 = _build_artifact(1, "artifact_a_duplicate", 300)
-
-    with pytest.raises(ValueError, match="Disk artifacts must not contain duplicates."):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            artifacts=[artifact_a_v1, artifact_a_v2],
-        )
-
-
-def test_disk_raises_when_artifacts_exceed_total_capacity() -> None:
-    artifact_a = _build_artifact(1, "artifact_a", 600)
-    artifact_b = _build_artifact(2, "artifact_b", 500)
-
-    with pytest.raises(
-        ValueError,
-        match="Disk artifacts exceed total capacity.",
-    ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            artifacts=[artifact_a, artifact_b],
-        )
-
-
-def test_disk_get_used_space_bytes_returns_sum_of_most_recent_artifact_version_sizes() -> None:
-    artifact_a = _build_artifact(1, "artifact_a", 200)
-    artifact_b = _build_artifact(2, "artifact_b", 300)
-
-    disk = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        artifacts=[artifact_a, artifact_b],
-    )
-
-    assert disk.get_used_space_bytes() == 500
-
-
-def test_disk_free_space_bytes_is_derived_from_total_capacity_and_artifacts() -> None:
-    artifact_a = _build_artifact(1, "artifact_a", 200)
-    artifact_b = _build_artifact(2, "artifact_b", 300)
-
-    disk = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        artifacts=[artifact_a, artifact_b],
-    )
-
-    assert disk.free_space_bytes == 500
-
-
-def test_disk_can_store_size_returns_true_when_size_fits_remaining_free_space() -> None:
-    artifact_a = _build_artifact(1, "artifact_a", 200)
-    artifact_b = _build_artifact(2, "artifact_b", 300)
-
-    disk = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        artifacts=[artifact_a, artifact_b],
-    )
-
-    assert disk.can_store_size(500) is True
-
-
-def test_disk_can_store_size_returns_false_when_size_exceeds_remaining_free_space() -> None:
-    artifact_a = _build_artifact(1, "artifact_a", 200)
-    artifact_b = _build_artifact(2, "artifact_b", 300)
-
-    disk = Disk(
-        id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        artifacts=[artifact_a, artifact_b],
-    )
-
-    assert disk.can_store_size(501) is False
-
-
-def test_disk_uses_most_recent_artifact_version_size_when_calculating_used_space() -> None:
-    artifact = Artifact(
-        id=1,
-        name="artifact_a",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
-    )
-    artifact.add_version(
-        ArtifactVersion(
-            id=1,
-            artifact_id=1,
+            artifact=artifact,
             created_at=datetime(2026, 4, 15, 10, 30, 0),
-            size_bytes=200,
-            version_label="v1",
-            checksum="checksum-v1",
+            size_bytes=1024,
+            copies=[],
         )
-    )
-    artifact.add_version(
+
+
+def test_artifact_version_raises_when_size_bytes_is_negative() -> None:
+    artifact = _build_artifact()
+
+    with pytest.raises(
+        ValueError,
+        match="ArtifactVersion size_bytes must be >= 0.",
+    ):
         ArtifactVersion(
-            id=2,
-            artifact_id=1,
-            created_at=datetime(2026, 4, 16, 10, 30, 0),
-            size_bytes=350,
-            version_label="v2",
-            checksum="checksum-v2",
+            id=1,
+            artifact=artifact,
+            created_at=datetime(2026, 4, 15, 10, 30, 0),
+            size_bytes=-1,
+            copies=[],
         )
+
+
+def test_artifact_version_raises_when_version_label_is_blank() -> None:
+    artifact = _build_artifact()
+
+    with pytest.raises(
+        ValueError,
+        match="ArtifactVersion version_label must not be empty if provided.",
+    ):
+        ArtifactVersion(
+            id=1,
+            artifact=artifact,
+            created_at=datetime(2026, 4, 15, 10, 30, 0),
+            size_bytes=1024,
+            version_label="   ",
+            copies=[],
+        )
+
+
+def test_artifact_version_raises_when_checksum_is_blank() -> None:
+    artifact = _build_artifact()
+
+    with pytest.raises(
+        ValueError,
+        match="ArtifactVersion checksum must not be empty if provided.",
+    ):
+        ArtifactVersion(
+            id=1,
+            artifact=artifact,
+            created_at=datetime(2026, 4, 15, 10, 30, 0),
+            size_bytes=1024,
+            checksum="   ",
+            copies=[],
+        )
+
+
+def test_artifact_version_raises_when_expires_at_is_before_created_at() -> None:
+    artifact = _build_artifact()
+
+    with pytest.raises(
+        ValueError,
+        match="ArtifactVersion expires_at must be >= created_at.",
+    ):
+        ArtifactVersion(
+            id=1,
+            artifact=artifact,
+            created_at=datetime(2026, 4, 15, 10, 30, 0),
+            size_bytes=1024,
+            expires_at=datetime(2026, 4, 14, 10, 30, 0),
+            copies=[],
+        )
+
+
+def test_artifact_version_allows_optional_fields_to_be_none() -> None:
+    artifact = _build_artifact()
+
+    artifact_version = ArtifactVersion(
+        id=1,
+        artifact=artifact,
+        created_at=datetime(2026, 4, 15, 10, 30, 0),
+        size_bytes=1024,
+        version_label=None,
+        checksum=None,
+        expires_at=None,
+        copies=[],
     )
 
-    disk = Disk(
+    assert artifact_version.version_label is None
+    assert artifact_version.checksum is None
+    assert artifact_version.expires_at is None
+
+
+def test_add_copy_saves_copy_in_artifact_version() -> None:
+    artifact = _build_artifact()
+    artifact_version = ArtifactVersion(
         id=1,
-        name="disk_a",
-        total_capacity_bytes=1_000,
-        health_score=0.8,
-        artifacts=[artifact],
+        artifact=artifact,
+        created_at=datetime(2026, 4, 15, 10, 30, 0),
+        size_bytes=1024,
+        version_label="v1",
+        checksum="abc123",
+        copies=[],
+    )
+    artifact_copy = ArtifactCopy(
+        id=1,
+        artifact_version=artifact_version,
+        copy_index=1,
+        disk_id=10,
+        disk_path="/mnt/disk_a/photos_backup_v1.zip",
+        is_present=True,
+        status="verified",
     )
 
-    assert disk.get_used_space_bytes() == 350
-    assert disk.free_space_bytes == 650
+    artifact_version.add_copy(artifact_copy)
+
+    saved_copies = artifact_version.get_copies()
+
+    assert len(saved_copies) == 1
+    assert saved_copies[0] == artifact_copy
+    assert saved_copies[0].artifact_version == artifact_version
 
 
-def test_disk_raises_when_artifact_without_versions_is_passed_in_artifacts_list() -> None:
-    artifact_without_versions = Artifact(
+def test_remove_copy_removes_previously_added_copy() -> None:
+    artifact = _build_artifact()
+    artifact_version = ArtifactVersion(
         id=1,
-        name="artifact_a",
-        priority_score=100,
-        desired_copy_count=2,
-        artifact_type="zip",
+        artifact=artifact,
+        created_at=datetime(2026, 4, 15, 10, 30, 0),
+        size_bytes=1024,
+        version_label="v1",
+        checksum="abc123",
+        copies=[],
+    )
+    artifact_copy = ArtifactCopy(
+        id=1,
+        artifact_version=artifact_version,
+        copy_index=1,
+        disk_id=10,
+        disk_path="/mnt/disk_a/photos_backup_v1.zip",
+        is_present=True,
+        status="verified",
+    )
+
+    artifact_version.add_copy(artifact_copy)
+    artifact_version.remove_copy(copy_id=1)
+
+    saved_copies = artifact_version.get_copies()
+
+    assert saved_copies == []
+
+
+def test_add_copy_raises_when_copy_artifact_version_does_not_match() -> None:
+    artifact = _build_artifact()
+    other_artifact = _build_artifact(artifact_id=2, name="videos_backup")
+    artifact_version = ArtifactVersion(
+        id=1,
+        artifact=artifact,
+        created_at=datetime(2026, 4, 15, 10, 30, 0),
+        size_bytes=1024,
+        version_label="v1",
+        checksum="abc123",
+        copies=[],
+    )
+    other_version = ArtifactVersion(
+        id=2,
+        artifact=other_artifact,
+        created_at=datetime(2026, 4, 16, 10, 30, 0),
+        size_bytes=2048,
+        version_label="v2",
+        checksum="checksum-v2",
+        copies=[],
+    )
+    artifact_copy = ArtifactCopy(
+        id=1,
+        artifact_version=other_version,
+        copy_index=1,
+        disk_id=10,
+        disk_path="/mnt/disk_a/photos_backup_v1.zip",
+        is_present=True,
+        status="verified",
     )
 
     with pytest.raises(
         ValueError,
-        match="Disk artifacts must have a most recent version.",
+        match="does not match ArtifactVersion",
     ):
-        Disk(
-            id=1,
-            name="disk_a",
-            total_capacity_bytes=1_000,
-            health_score=0.8,
-            artifacts=[artifact_without_versions],
-        )
+        artifact_version.add_copy(artifact_copy)
+
+
+def test_add_copy_raises_when_copy_id_already_exists() -> None:
+    artifact = _build_artifact()
+    artifact_version = ArtifactVersion(
+        id=1,
+        artifact=artifact,
+        created_at=datetime(2026, 4, 15, 10, 30, 0),
+        size_bytes=1024,
+        version_label="v1",
+        checksum="abc123",
+        copies=[],
+    )
+    first_copy = ArtifactCopy(
+        id=1,
+        artifact_version=artifact_version,
+        copy_index=1,
+        disk_id=10,
+        disk_path="/mnt/disk_a/photos_backup_v1.zip",
+        is_present=True,
+        status="verified",
+    )
+    duplicate_id_copy = ArtifactCopy(
+        id=1,
+        artifact_version=artifact_version,
+        copy_index=2,
+        disk_id=11,
+        disk_path="/mnt/disk_b/photos_backup_v1.zip",
+        is_present=True,
+        status="verified",
+    )
+
+    artifact_version.add_copy(first_copy)
+
+    with pytest.raises(ValueError, match="already exists"):
+        artifact_version.add_copy(duplicate_id_copy)
+
+
+def test_add_copy_raises_when_copy_index_already_exists() -> None:
+    artifact = _build_artifact()
+    artifact_version = ArtifactVersion(
+        id=1,
+        artifact=artifact,
+        created_at=datetime(2026, 4, 15, 10, 30, 0),
+        size_bytes=1024,
+        version_label="v1",
+        checksum="abc123",
+        copies=[],
+    )
+    first_copy = ArtifactCopy(
+        id=1,
+        artifact_version=artifact_version,
+        copy_index=1,
+        disk_id=10,
+        disk_path="/mnt/disk_a/photos_backup_v1.zip",
+        is_present=True,
+        status="verified",
+    )
+    duplicate_index_copy = ArtifactCopy(
+        id=2,
+        artifact_version=artifact_version,
+        copy_index=1,
+        disk_id=11,
+        disk_path="/mnt/disk_b/photos_backup_v1.zip",
+        is_present=True,
+        status="verified",
+    )
+
+    artifact_version.add_copy(first_copy)
+
+    with pytest.raises(ValueError, match="copy_index=1 already exists"):
+        artifact_version.add_copy(duplicate_index_copy)
+
+
+def test_remove_copy_raises_when_copy_does_not_exist() -> None:
+    artifact = _build_artifact()
+    artifact_version = ArtifactVersion(
+        id=1,
+        artifact=artifact,
+        created_at=datetime(2026, 4, 15, 10, 30, 0),
+        size_bytes=1024,
+        version_label="v1",
+        checksum="abc123",
+        copies=[],
+    )
+
+    with pytest.raises(ValueError, match="was not found"):
+        artifact_version.remove_copy(copy_id=999)
+
+
+def test_get_copy_by_index_returns_matching_copy() -> None:
+    artifact = _build_artifact()
+    artifact_version = ArtifactVersion(
+        id=1,
+        artifact=artifact,
+        created_at=datetime(2026, 4, 15, 10, 30, 0),
+        size_bytes=1024,
+        version_label="v1",
+        checksum="abc123",
+        copies=[],
+    )
+    first_copy = ArtifactCopy(
+        id=1,
+        artifact_version=artifact_version,
+        copy_index=1,
+        disk_id=10,
+        disk_path="/mnt/disk_a/photos_backup_v1.zip",
+        is_present=True,
+        status="verified",
+    )
+    second_copy = ArtifactCopy(
+        id=2,
+        artifact_version=artifact_version,
+        copy_index=2,
+        disk_id=11,
+        disk_path="/mnt/disk_b/photos_backup_v1.zip",
+        is_present=True,
+        status="verified",
+    )
+
+    artifact_version.add_copy(first_copy)
+    artifact_version.add_copy(second_copy)
+
+    found_copy = artifact_version.get_copy_by_index(copy_index=2)
+
+    assert found_copy == second_copy
+
+
+def test_get_copy_by_index_returns_none_when_missing() -> None:
+    artifact = _build_artifact()
+    artifact_version = ArtifactVersion(
+        id=1,
+        artifact=artifact,
+        created_at=datetime(2026, 4, 15, 10, 30, 0),
+        size_bytes=1024,
+        version_label="v1",
+        checksum="abc123",
+        copies=[],
+    )
+
+    found_copy = artifact_version.get_copy_by_index(copy_index=1)
+
+    assert found_copy is None

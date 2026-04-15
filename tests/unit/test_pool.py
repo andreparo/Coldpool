@@ -26,11 +26,12 @@ def _build_artifact(
     artifact.add_version(
         ArtifactVersion(
             id=artifact_id,
-            artifact_id=artifact_id,
+            artifact=artifact,
             created_at=created_at or datetime(2026, 4, 15, 10, 30, 0),
             size_bytes=size_bytes,
             version_label="v1",
             checksum=f"checksum-{artifact_id}",
+            copies=[],
         )
     )
     return artifact
