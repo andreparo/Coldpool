@@ -6,7 +6,16 @@ cd "$repo_root/apps/coldpool_web_app"
 
 echo "=== FRONTEND TYPE CHECK WITH TSC ==="
 
-if npx tsc --noEmit -p tsconfig.app.json; then
+tsc_args=(
+    --noEmit
+    -p tsconfig.app.json
+)
+
+if [[ -n "${TSC_BUILDINFO_FILE:-}" ]]; then
+    tsc_args+=(--incremental --tsBuildInfoFile "$TSC_BUILDINFO_FILE")
+fi
+
+if npx tsc "${tsc_args[@]}"; then
     echo "[OK] TypeScript check passed."
 else
     echo
