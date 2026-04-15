@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'linux-docker' }
+    agent none
 
     options {
         timestamps()
@@ -7,6 +7,12 @@ pipeline {
 
     stages {
         stage('VERSIONING') {
+            agent {
+                docker {
+                    label 'linux-docker'
+                    image 'coldpool-ci-base:1'
+                }
+            }
             steps {
                 sh 'bash ci/versioning.sh'
 
@@ -41,12 +47,24 @@ pipeline {
         }
 
         stage('STRUCTURE') {
+            agent {
+                docker {
+                    label 'linux-docker'
+                    image 'coldpool-ci-base:1'
+                }
+            }
             steps {
                 sh 'bash ci/structure.sh'
             }
         }
 
         stage('FORMAT') {
+            agent {
+                docker {
+                    label 'linux-docker'
+                    image 'coldpool-ci-base:1'
+                }
+            }
             steps {
                 sh 'bash ci/format.sh'
             }
