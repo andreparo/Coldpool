@@ -148,6 +148,23 @@ pipeline {
                 }
             }
         }
+
+        stage('FAST_TESTS') {
+            parallel {
+                stage('UNIT') {
+                    agent { label 'linux-docker' }
+
+                    steps {
+                        sh '''
+                            docker run --rm \
+                              -w /workspace \
+                              "$COMMIT_IMAGE" \
+                              bash ci/unit.sh
+                        '''
+                    }
+                }
+            }
+        }
     }
 
     post {
