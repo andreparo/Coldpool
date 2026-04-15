@@ -6,13 +6,10 @@ pipeline {
     }
 
     stages {
-        stage('Versioning') {
+        stage('VERSIONING') {
             steps {
-                sh '''
-                    python3 ci/versioning/verify_changelog.py
-                    python3 ci/versioning/compute_version.py > ci_version.env
-                    cat ci_version.env
-                '''
+                sh 'bash ci/versioning.sh'
+
                 script {
                     def envText = readFile('ci_version.env').trim()
                     def data = [:]
@@ -22,6 +19,16 @@ pipeline {
                         if (parts.length == 2) {
                             data[parts[0].trim()] = parts[1].trim()
                         }
+                    }
+
+                    if (!data['VERSION']) {
+                        error('VERSION missing from ci_version.env')
+                    }
+                    if (!data['SHORT_SHA']) {
+                        error('SHORT_SHA missing from ci_version.env')
+                    }
+                    if (!data['IS_STABLE']) {
+                        error('IS_STABLE missing from ci_version.env')
                     }
 
                     env.VERSION = data['VERSION']
