@@ -8,8 +8,8 @@
 **/*.pyo
 
 **/node_modules
-**/dist
-**/build
+apps/*/dist
+apps/*/build
 **/coverage
 
 reports
