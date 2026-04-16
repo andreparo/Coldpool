@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 from coldpool_server.artifact.artifact import Artifact
 from coldpool_server.artifact.artifact_version import ArtifactVersion
@@ -15,6 +16,7 @@ class FlaskServer:
 
     def __init__(self) -> None:
         """Create the Flask application and register all routes."""
+        self.frontend_dist_dir = self._resolve_frontend_dist_dir()
         self.app = Flask(__name__)
         self._register_routes()
 
@@ -39,6 +41,16 @@ class FlaskServer:
             "/api/artifact-versions",
             view_func=self.create_new_artifact_version,
             methods=["POST"],
+        )
+        self.app.add_url_rule(
+            "/",
+            view_func=self.serve_frontend_index,
+            methods=["GET"],
+        )
+        self.app.add_url_rule(
+            "/<path:requested_path>",
+            view_func=self.serve_frontend_path,
+            methods=["GET"],
         )
 
     def run(
@@ -167,6 +179,21 @@ class FlaskServer:
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
 
+    def serve_frontend_index(self) -> Any:
+        """Serve the React single-page application entrypoint."""
+        return send_from_directory(self.frontend_dist_dir, "index.html")
+
+    def serve_frontend_path(self, requested_path: str) -> Any:
+        """Serve frontend static files or fall back to the SPA entrypoint."""
+        if requested_path.startswith("api/"):
+            return jsonify({"error": "Not found."}), 404
+
+        requested_file = self.frontend_dist_dir / requested_path
+        if requested_file.is_file():
+            return send_from_directory(self.frontend_dist_dir, requested_path)
+
+        return send_from_directory(self.frontend_dist_dir, "index.html")
+
     @staticmethod
     def _resolve_or_create_artifact(
         pool: Any,
@@ -284,3 +311,19 @@ class FlaskServer:
             return datetime.fromisoformat(value)
         except ValueError as exc:
             raise ValueError("Optional datetime field must be a valid ISO string or null.") from exc
+
+    @staticmethod
+    def _resolve_frontend_dist_dir() -> Path:
+        """Return the installed frontend dist directory or the local dev one."""
+        installed_dist_dir = Path("/opt/coldpool/frontend/dist")
+        if installed_dist_dir.is_dir():
+            return installed_dist_dir
+
+        current_file = Path(__file__).resolve()
+        repo_dist_dir = current_file.parents[5] / "coldpool_web_app" / "dist"
+        if repo_dist_dir.is_dir():
+            return repo_dist_dir
+
+        raise FileNotFoundError(
+            "Frontend dist directory was not found in /opt/coldpool/frontend/dist " "or in the local repository build output."
+        )
