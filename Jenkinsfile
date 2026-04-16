@@ -287,6 +287,36 @@ pipeline {
                 echo "Manual test container ready at: ${env.MANUAL_URL}"
             }
         }
+
+        stage('MANUAL_APPROVAL') {
+            agent none
+
+            steps {
+                script {
+                    timeout(time: 12, unit: 'HOURS') {
+                        input(
+                            message: """Manual test container is ready.
+
+URL:
+${env.MANUAL_URL}
+
+Approve to continue to ACCEPTANCE.
+Reject or abort to stop the pipeline.
+""",
+                            ok: 'Approve'
+                        )
+                    }
+                }
+            }
+        }
+
+        stage('ACCEPTANCE') {
+            agent { label 'linux-docker' }
+
+            steps {
+                echo 'Acceptance stage placeholder.'
+            }
+        }
     }
 
     post {
