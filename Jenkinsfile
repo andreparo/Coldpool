@@ -136,17 +136,21 @@ pipeline {
                         sh '''
                             mkdir -p /mnt/1000E/jenkins-agent/cache/eslint
                             mkdir -p /mnt/1000E/jenkins-agent/cache/tsc
+                            mkdir -p /mnt/1000E/jenkins-agent/cache/npm
+
                             chown -R jenkins-agent:jenkins-agent /mnt/1000E/jenkins-agent/cache || true
 
                             docker run --rm \
                               -e ESLINT_CACHE_FILE=/ci-cache/eslint/.eslintcache \
                               -e TSC_BUILDINFO_FILE=/ci-cache/tsc/tsconfig.app.tsbuildinfo \
+                              -e npm_config_cache=/ci-cache/npm \
                               -v "$WORKSPACE":/workspace \
                               -v /mnt/1000E/jenkins-agent/cache/eslint:/ci-cache/eslint \
                               -v /mnt/1000E/jenkins-agent/cache/tsc:/ci-cache/tsc \
+                              -v /mnt/1000E/jenkins-agent/cache/npm:/ci-cache/npm \
                               -w /workspace \
                               "$COMMIT_IMAGE" \
-                              bash ci/lint_frontend.sh
+                              bash -lc 'cd apps/coldpool_web_app && npm ci && cd /workspace && bash ci/lint_frontend.sh'
                         '''
                     }
                 }
