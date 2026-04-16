@@ -243,7 +243,15 @@ pipeline {
             }
         }
 
-        stage('MANUAL_SETUP') {
+        stage('ACCEPTANCE') {
+            agent { label 'linux-docker' }
+
+            steps {
+                echo 'Acceptance stage placeholder.'
+            }
+        }
+
+        stage('MANUAL_APPROVAL') {
             agent { label 'linux-docker' }
 
             steps {
@@ -285,36 +293,36 @@ pipeline {
                 }
 
                 echo "Manual test container ready at: ${env.MANUAL_URL}"
-            }
-        }
 
-        stage('MANUAL_APPROVAL') {
-            agent none
-
-            steps {
                 script {
                     timeout(time: 12, unit: 'HOURS') {
-                        input(
+                        def decision = input(
                             message: """Manual test container is ready.
 
 URL:
 ${env.MANUAL_URL}
 
-Approve to continue to ACCEPTANCE.
-Reject or abort to stop the pipeline.
+Choose APPROVE if the build is releasable.
+Choose DECLINE if you found issues.
+Use Jenkins Abort only if this run should be interrupted.
 """,
-                            ok: 'Approve'
-                        )
+                            ok: 'Submit',
+                            parameters: [
+                                choice(
+                                    name: 'MANUAL_DECISION',
+                                    choices: ['APPROVE', 'DECLINE'],
+                                    description: 'Manual review decision'
+                                )
+                            ]
+                        ) as String
+
+                        if (decision == 'DECLINE') {
+                            error('Manual approval declined.')
+                        }
+
+                        echo 'Manual approval granted.'
                     }
                 }
-            }
-        }
-
-        stage('ACCEPTANCE') {
-            agent { label 'linux-docker' }
-
-            steps {
-                echo 'Acceptance stage placeholder.'
             }
         }
     }
