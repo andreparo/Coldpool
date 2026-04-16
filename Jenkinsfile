@@ -242,6 +242,46 @@ pipeline {
                 '''
             }
         }
+
+        stage('MANUAL_SETUP') {
+            agent { label 'linux-docker' }
+
+            steps {
+                sh '''
+                    export BUILD_NUMBER="$BUILD_NUMBER"
+                    export RUNTIME_IMAGE="$RUNTIME_IMAGE"
+                    bash ci/manual_setup.sh
+                '''
+
+                script {
+                    def envText = readFile('ci_manual.env').trim()
+                    def data = [:]
+
+                    envText.split('\n').each { line ->
+                        def parts = line.split('=', 2)
+                        if (parts.length == 2) {
+                            data[parts[0].trim()] = parts[1].trim()
+                        }
+                    }
+
+                    if (!data['MANUAL_CONTAINER_NAME']) {
+                        error('MANUAL_CONTAINER_NAME missing from ci_manual.env')
+                    }
+                    if (!data['MANUAL_PORT']) {
+                        error('MANUAL_PORT missing from ci_manual.env')
+                    }
+                    if (!data['MANUAL_URL']) {
+                        error('MANUAL_URL missing from ci_manual.env')
+                    }
+
+                    env.MANUAL_CONTAINER_NAME = data['MANUAL_CONTAINER_NAME']
+                    env.MANUAL_PORT = data['MANUAL_PORT']
+                    env.MANUAL_URL = data['MANUAL_URL']
+                }
+
+                echo "Manual test container ready at: ${env.MANUAL_URL}"
+            }
+        }
     }
 
     post {
@@ -249,6 +289,7 @@ pipeline {
             node('linux-docker') {
                 sh '''
                     docker rm -f "coldpool-runtime-smoke-$BUILD_NUMBER" || true
+                    docker rm -f "coldpool-runtime-manual-$BUILD_NUMBER" || true
                     docker image rm -f "$COMMIT_IMAGE" || true
                 '''
             }
