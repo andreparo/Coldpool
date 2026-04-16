@@ -14,8 +14,7 @@ class ColdpoolPageDriver:
     def open(self) -> None:
         """Open the Coldpool web page."""
         self.page.goto(f"{self.base_url}/")
-        expect(self.page).to_have_title("coldpool_web_app")
-        # TODO: replace this title check with the final real app title when defined.
+        expect(self.page.get_by_test_id("page-title")).to_have_text("Coldpool")
 
     def create_new_artifact_and_first_version(
         self,
@@ -29,19 +28,25 @@ class ColdpoolPageDriver:
         checksum: str,
     ) -> None:
         """Create a new artifact together with its first version."""
-        # TODO: these selectors must be aligned with the real React component labels/test ids.
-        self.page.get_by_label("Artifact selection").select_option("new")
-        self.page.get_by_label("Artifact name").fill(artifact_name)
-        self.page.get_by_label("Priority score").fill(str(priority_score))
-        self.page.get_by_label("Desired copy count").fill(str(desired_copy_count))
-        self.page.get_by_label("Artifact type").fill(artifact_type)
+        self.page.get_by_test_id("artifact-mode-new").check()
 
-        self.page.get_by_label("Version label").fill(version_label)
-        self.page.get_by_label("Created at").fill(created_at)
-        self.page.get_by_label("Size bytes").fill(str(size_bytes))
-        self.page.get_by_label("Checksum").fill(checksum)
+        self.page.get_by_test_id("new-artifact-name-input").fill(artifact_name)
+        self.page.get_by_test_id("new-artifact-priority-score-input").fill(
+            str(priority_score)
+        )
+        self.page.get_by_test_id(
+            "new-artifact-desired-copy-count-input"
+        ).fill(str(desired_copy_count))
+        self.page.get_by_test_id("new-artifact-type-input").fill(artifact_type)
 
-        self.page.get_by_role("button", name="Create artifact version").click()
+        self.page.get_by_test_id("version-label-input").fill(version_label)
+        self.page.get_by_test_id("created-at-input").fill(
+            self._to_datetime_local_value(created_at)
+        )
+        self.page.get_by_test_id("size-bytes-input").fill(str(size_bytes))
+        self.page.get_by_test_id("checksum-input").fill(checksum)
+
+        self.page.get_by_test_id("create-artifact-version-button").click()
 
     def expect_artifact_version_visible(
         self,
@@ -49,6 +54,14 @@ class ColdpoolPageDriver:
         version_label: str,
     ) -> None:
         """Check that the created artifact/version appears in the list."""
+        expect(self.page.get_by_test_id("artifact-version-list")).to_be_visible()
         expect(self.page.get_by_text(artifact_name)).to_be_visible()
-        expect(self.page.get_by_text(version_label)).to_be_visible()
-        # TODO: make this stricter by targeting the exact display card once the UI structure is stable.
+        expect(self.page.get_by_text(f"Version {version_label}")).to_be_visible()
+
+    @staticmethod
+    def _to_datetime_local_value(value: str) -> str:
+        """Convert ISO datetime strings to datetime-local input format."""
+        normalized_value = value.strip()
+        if normalized_value.endswith("Z"):
+            normalized_value = normalized_value[:-1]
+        return normalized_value[:16]
