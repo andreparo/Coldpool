@@ -177,6 +177,11 @@ pipeline {
                       "$COMMIT_IMAGE" \
                       bash ci/build.sh
                 '''
+
+                sh '''
+                    echo "=== WORKSPACE DIST CONTENTS ==="
+                    find apps/coldpool_server -maxdepth 3 -type f | sort
+                '''
             }
 
             post {
