@@ -6,14 +6,34 @@ cd "$repo_root"
 
 runtime_image="${RUNTIME_IMAGE:?RUNTIME_IMAGE environment variable is required}"
 build_number="${BUILD_NUMBER:?BUILD_NUMBER environment variable is required}"
-manual_port="${COLDPOOL_MANUAL_PORT:-18180}"
-manual_host="${COLDPOOL_MANUAL_HOST:-sunflower-power}"
+manual_port="${COLDPOOL_MANUAL_PORT:-18080}"
 
 container_name="coldpool-runtime-manual-${build_number}"
+
+detect_host_ip() {
+    local detected_ip=""
+
+    if command -v ip >/dev/null 2>&1; then
+        detected_ip="$(ip route get 1.1.1.1 2>/dev/null | awk '/src/ {for (i = 1; i <= NF; i++) if ($i == "src") {print $(i+1); exit}}')"
+    fi
+
+    if [[ -z "$detected_ip" ]] && command -v hostname >/dev/null 2>&1; then
+        detected_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    fi
+
+    if [[ -z "$detected_ip" ]]; then
+        echo "[ERROR] Could not detect host IP address." >&2
+        exit 1
+    fi
+
+    printf '%s\n' "$detected_ip"
+}
 
 cleanup_on_failure() {
     docker rm -f "$container_name" >/dev/null 2>&1 || true
 }
+
+manual_host_ip="$(detect_host_ip)"
 
 echo "=== START MANUAL CONTAINER ==="
 docker rm -f "$container_name" >/dev/null 2>&1 || true
@@ -29,10 +49,10 @@ for _ in $(seq 1 30); do
         cat > ci_manual.env <<EOF
 MANUAL_CONTAINER_NAME=$container_name
 MANUAL_PORT=$manual_port
-MANUAL_HOST=$manual_host
-MANUAL_URL=http://${manual_host}:${manual_port}
+MANUAL_HOST_IP=$manual_host_ip
+MANUAL_URL=http://${manual_host_ip}:${manual_port}
 EOF
-        echo "[OK] Manual container is ready at http://${manual_host}:${manual_port}"
+        echo "[OK] Manual container is ready at http://${manual_host_ip}:${manual_port}"
         exit 0
     fi
     sleep 1
