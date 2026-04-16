@@ -6,7 +6,7 @@ from typing import Any
 from coldpool_server.artifact.artifact import Artifact
 from coldpool_server.artifact.artifact_copy import ArtifactCopy
 from coldpool_server.artifact.artifact_version import ArtifactVersion
-from coldpool_server.database_connector.database_connector import DatabaseConnector
+from coldpool_server.database.database_connector import DatabaseConnector
 from coldpool_server.disk.disk import Disk
 from coldpool_server.pool.pool import Pool
 
@@ -14,8 +14,33 @@ from coldpool_server.pool.pool import Pool
 class PoolLoader:
     """Load and dump a Pool from and to the SQLite database."""
 
+    current_pool: Pool | None = None
+
+    @classmethod
+    def get_current_pool(cls) -> Pool:
+        """Return the cached pool, loading it from SQLite if needed."""
+        if cls.current_pool is None:
+            cls.current_pool = cls._load_pool_from_database()
+        return cls.current_pool
+
+    @classmethod
+    def invalidate_current_pool(cls) -> None:
+        """Invalidate the cached pool so the next access reloads from SQLite."""
+        cls.current_pool = None
+
+    @classmethod
+    def reload_current_pool(cls) -> Pool:
+        """Force a reload from SQLite and return the new pool."""
+        cls.invalidate_current_pool()
+        return cls.get_current_pool()
+
     @classmethod
     def load_pool(cls) -> Pool:
+        """Backward-compatible alias for get_current_pool."""
+        return cls.get_current_pool()
+
+    @classmethod
+    def _load_pool_from_database(cls) -> Pool:
         """Load the full connected Pool object graph from SQLite."""
         disk_rows = DatabaseConnector.execute_query(
             """
@@ -168,11 +193,12 @@ class PoolLoader:
 
     @classmethod
     def dump_pool(cls, pool: Pool) -> None:
-        """Persist the full Pool object graph into SQLite.
+        """Persist the full Pool object graph into SQLite and invalidate cache.
 
         The pool is treated as the source of truth:
         - rows present in the pool are inserted or updated
         - rows missing from the pool are deleted
+        - the in-memory cache is invalidated, so the next read reloads from DB
         """
         cls._upsert_disks(pool)
         cls._upsert_artifacts(pool)
@@ -183,6 +209,8 @@ class PoolLoader:
         cls._delete_missing_versions(pool)
         cls._delete_missing_artifacts(pool)
         cls._delete_missing_disks(pool)
+
+        cls.invalidate_current_pool()
 
     @classmethod
     def _upsert_disks(cls, pool: Pool) -> None:
