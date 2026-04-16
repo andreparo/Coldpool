@@ -6,7 +6,7 @@ from typing import Any
 from coldpool_server.artifact.artifact import Artifact
 from coldpool_server.artifact.artifact_copy import ArtifactCopy
 from coldpool_server.artifact.artifact_version import ArtifactVersion
-from coldpool_server.database.database_connector import DatabaseConnector
+from coldpool_server.database_connector.database_connector import DatabaseConnector
 from coldpool_server.disk.disk import Disk
 from coldpool_server.pool.pool import Pool
 
