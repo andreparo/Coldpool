@@ -14,6 +14,9 @@ DIST_DIR="$REPO_ROOT/apps/coldpool_server/dist"
 FRONTEND_APP_ROOT="$REPO_ROOT/apps/coldpool_web_app"
 BACKEND_APP_ROOT="$REPO_ROOT/apps/coldpool_server"
 
+SQLITE_OUTPUT_PATH="$BACKEND_APP_ROOT/out/coldpool_database.sqlite"
+CONFIG_OUTPUT_DIR="$BACKEND_APP_ROOT/out/config"
+
 rm -rf "$WORK_DIR"
 mkdir -p "$PACKAGE_ROOT"
 mkdir -p "$DIST_DIR"
@@ -22,10 +25,13 @@ echo "=== PACKAGE RELEASE ==="
 
 bash "$FRONTEND_APP_ROOT/deployment/build_frontend.sh"
 bash "$BACKEND_APP_ROOT/deployment/build_backend_wheel.sh"
-bash "$BACKEND_APP_ROOT/deployment/create_sqlite_database.sh" \
-    "$BACKEND_APP_ROOT/out/coldpool_database.sqlite"
-bash "$BACKEND_APP_ROOT/deployment/create_config_templates.sh" \
-    "$BACKEND_APP_ROOT/out/config"
+bash "$BACKEND_APP_ROOT/deployment/create_sqlite_database.sh" "$SQLITE_OUTPUT_PATH"
+bash "$BACKEND_APP_ROOT/deployment/create_config_templates.sh" "$CONFIG_OUTPUT_DIR"
+
+if [[ ! -f "$SQLITE_OUTPUT_PATH" ]]; then
+    echo "[ERROR] SQLite database was not created at: $SQLITE_OUTPUT_PATH" >&2
+    exit 1
+fi
 
 mkdir -p "$PACKAGE_ROOT/backend"
 mkdir -p "$PACKAGE_ROOT/frontend"
@@ -41,8 +47,8 @@ cp "$BACKEND_APP_ROOT/deployment/run.sh" "$PACKAGE_ROOT/run.sh"
 
 cp "$BACKEND_APP_ROOT"/dist/*.whl "$PACKAGE_ROOT/backend/"
 cp -R "$FRONTEND_APP_ROOT/dist" "$PACKAGE_ROOT/frontend/dist"
-cp "$BACKEND_APP_ROOT/out/coldpool_database.sqlite" "$PACKAGE_ROOT/database/"
-cp "$BACKEND_APP_ROOT/out/config/"* "$PACKAGE_ROOT/config/"
+cp "$SQLITE_OUTPUT_PATH" "$PACKAGE_ROOT/database/"
+cp "$CONFIG_OUTPUT_DIR/"* "$PACKAGE_ROOT/config/"
 cp "$BACKEND_APP_ROOT/deployment/systemd/coldpool.service" "$PACKAGE_ROOT/systemd/"
 
 chmod +x "$PACKAGE_ROOT/install.sh"
