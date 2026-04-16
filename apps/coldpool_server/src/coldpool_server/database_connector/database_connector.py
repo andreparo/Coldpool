@@ -8,7 +8,7 @@ from typing import Any
 class DatabaseConnector:
     """Simple SQLite connector for the Coldpool project database."""
 
-    DATABASE_FILE_NAME = "coldpool_database.sqllite"
+    DATABASE_FILE_NAME = "coldpool_database.sqlite"
 
     @classmethod
     def _get_database_path(cls) -> Path:
