@@ -210,6 +210,36 @@ pipeline {
                     export SHORT_SHA="$SHORT_SHA"
                     bash ci/test_images.sh
                 '''
+
+                script {
+                    def envText = readFile('ci_runtime.env').trim()
+                    def data = [:]
+
+                    envText.split('\n').each { line ->
+                        def parts = line.split('=', 2)
+                        if (parts.length == 2) {
+                            data[parts[0].trim()] = parts[1].trim()
+                        }
+                    }
+
+                    if (!data['RUNTIME_IMAGE']) {
+                        error('RUNTIME_IMAGE missing from ci_runtime.env')
+                    }
+
+                    env.RUNTIME_IMAGE = data['RUNTIME_IMAGE']
+                }
+            }
+        }
+
+        stage('SMOKE') {
+            agent { label 'linux-docker' }
+
+            steps {
+                sh '''
+                    export BUILD_NUMBER="$BUILD_NUMBER"
+                    export RUNTIME_IMAGE="$RUNTIME_IMAGE"
+                    bash ci/smoke.sh
+                '''
             }
         }
     }
@@ -218,6 +248,7 @@ pipeline {
         always {
             node('linux-docker') {
                 sh '''
+                    docker rm -f "coldpool-runtime-smoke-$BUILD_NUMBER" || true
                     docker image rm -f "$COMMIT_IMAGE" || true
                 '''
             }
