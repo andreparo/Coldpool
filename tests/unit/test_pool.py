@@ -336,3 +336,278 @@ def test_pool_returns_zero_totals_when_empty() -> None:
     assert pool.get_total_capacity_bytes() == 0
     assert pool.get_total_used_space_bytes() == 0
     assert pool.get_total_free_space_bytes() == 0
+
+
+
+def test_pool_get_disk_by_id_returns_matching_disk() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+    disk_b = _build_disk(2, "disk_b", 2_000)
+
+    pool = Pool(
+        disks=[disk_a, disk_b],
+        artifacts=[],
+    )
+
+    found_disk = pool.get_disk_by_id(2)
+
+    assert found_disk == disk_b
+
+
+def test_pool_get_disk_by_id_returns_none_when_missing() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+
+    pool = Pool(
+        disks=[disk_a],
+        artifacts=[],
+    )
+
+    found_disk = pool.get_disk_by_id(999)
+
+    assert found_disk is None
+
+
+def test_pool_get_artifact_by_id_returns_matching_artifact() -> None:
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+
+    pool = Pool(
+        disks=[],
+        artifacts=[artifact_a, artifact_b],
+    )
+
+    found_artifact = pool.get_artifact_by_id(2)
+
+    assert found_artifact == artifact_b
+
+
+def test_pool_get_artifact_by_id_returns_none_when_missing() -> None:
+    artifact_a = _build_artifact(1, "artifact_a")
+
+    pool = Pool(
+        disks=[],
+        artifacts=[artifact_a],
+    )
+
+    found_artifact = pool.get_artifact_by_id(999)
+
+    assert found_artifact is None
+
+
+def test_pool_get_version_by_id_returns_matching_version() -> None:
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+
+    version_a1 = _build_version(1, artifact_a, 200)
+    _build_version(2, artifact_a, 300)
+    version_b1 = _build_version(3, artifact_b, 400)
+
+    pool = Pool(
+        disks=[],
+        artifacts=[artifact_a, artifact_b],
+    )
+
+    found_version = pool.get_version_by_id(3)
+
+    assert found_version == version_b1
+
+
+def test_pool_get_version_by_id_returns_none_when_missing() -> None:
+    artifact_a = _build_artifact(1, "artifact_a")
+    _build_version(1, artifact_a, 200)
+
+    pool = Pool(
+        disks=[],
+        artifacts=[artifact_a],
+    )
+
+    found_version = pool.get_version_by_id(999)
+
+    assert found_version is None
+
+
+def test_pool_get_copy_by_id_returns_matching_copy() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+    disk_b = _build_disk(2, "disk_b", 2_000)
+
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+
+    version_a1 = _build_version(1, artifact_a, 200)
+    version_b1 = _build_version(2, artifact_b, 300)
+
+    _attach_copy_to_version_and_disk(1, version_a1, 1, disk_a)
+    copy_b1 = _attach_copy_to_version_and_disk(2, version_b1, 1, disk_b)
+
+    pool = Pool(
+        disks=[disk_a, disk_b],
+        artifacts=[artifact_a, artifact_b],
+    )
+
+    found_copy = pool.get_copy_by_id(2)
+
+    assert found_copy == copy_b1
+
+
+def test_pool_get_copy_by_id_returns_none_when_missing() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+    artifact_a = _build_artifact(1, "artifact_a")
+    version_a1 = _build_version(1, artifact_a, 200)
+    _attach_copy_to_version_and_disk(1, version_a1, 1, disk_a)
+
+    pool = Pool(
+        disks=[disk_a],
+        artifacts=[artifact_a],
+    )
+
+    found_copy = pool.get_copy_by_id(999)
+
+    assert found_copy is None
+
+
+def test_pool_get_all_versions_returns_all_versions_across_all_artifacts() -> None:
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+
+    version_a1 = _build_version(1, artifact_a, 200)
+    version_a2 = _build_version(2, artifact_a, 300)
+    version_b1 = _build_version(3, artifact_b, 400)
+
+    pool = Pool(
+        disks=[],
+        artifacts=[artifact_a, artifact_b],
+    )
+
+    all_versions = pool.get_all_versions()
+
+    assert all_versions == [version_a1, version_a2, version_b1]
+
+
+def test_pool_get_all_versions_returns_empty_list_when_pool_has_no_artifacts() -> None:
+    pool = Pool(
+        disks=[],
+        artifacts=[],
+    )
+
+    all_versions = pool.get_all_versions()
+
+    assert all_versions == []
+
+
+def test_pool_get_all_copies_returns_all_copies_across_all_artifacts() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+    disk_b = _build_disk(2, "disk_b", 2_000)
+
+    artifact_a = _build_artifact(1, "artifact_a")
+    artifact_b = _build_artifact(2, "artifact_b")
+
+    version_a1 = _build_version(1, artifact_a, 200)
+    version_a2 = _build_version(2, artifact_a, 300)
+    version_b1 = _build_version(3, artifact_b, 400)
+
+    copy_a1 = _attach_copy_to_version_and_disk(1, version_a1, 1, disk_a)
+    copy_a2 = _attach_copy_to_version_and_disk(2, version_a2, 1, disk_b)
+    copy_b1 = _attach_copy_to_version_and_disk(3, version_b1, 1, disk_a)
+
+    pool = Pool(
+        disks=[disk_a, disk_b],
+        artifacts=[artifact_a, artifact_b],
+    )
+
+    all_copies = pool.get_all_copies()
+
+    assert all_copies == [copy_a1, copy_a2, copy_b1]
+
+
+def test_pool_get_all_copies_returns_empty_list_when_pool_has_no_copies() -> None:
+    artifact_a = _build_artifact(1, "artifact_a")
+    _build_version(1, artifact_a, 200)
+
+    pool = Pool(
+        disks=[],
+        artifacts=[artifact_a],
+    )
+
+    all_copies = pool.get_all_copies()
+
+    assert all_copies == []
+
+
+def test_pool_add_disk_adds_new_disk_to_pool() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+    disk_b = _build_disk(2, "disk_b", 2_000)
+
+    pool = Pool(
+        disks=[disk_a],
+        artifacts=[],
+    )
+
+    pool.add_disk(disk_b)
+
+    assert pool.disks == [disk_a, disk_b]
+
+
+def test_pool_add_disk_raises_when_disk_id_already_exists() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+    duplicate_id_disk = _build_disk(1, "disk_b", 2_000)
+
+    pool = Pool(
+        disks=[disk_a],
+        artifacts=[],
+    )
+
+    with pytest.raises(ValueError, match="duplicate ids"):
+        pool.add_disk(duplicate_id_disk)
+
+
+def test_pool_add_disk_raises_when_disk_name_already_exists() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+    duplicate_name_disk = _build_disk(2, "disk_a", 2_000)
+
+    pool = Pool(
+        disks=[disk_a],
+        artifacts=[],
+    )
+
+    with pytest.raises(ValueError, match="duplicate names"):
+        pool.add_disk(duplicate_name_disk)
+
+
+def test_pool_remove_disk_if_empty_removes_existing_empty_disk() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+    disk_b = _build_disk(2, "disk_b", 2_000)
+
+    pool = Pool(
+        disks=[disk_a, disk_b],
+        artifacts=[],
+    )
+
+    pool.remove_disk_if_empty(2)
+
+    assert pool.disks == [disk_a]
+
+
+def test_pool_remove_disk_if_empty_raises_when_disk_does_not_exist() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+
+    pool = Pool(
+        disks=[disk_a],
+        artifacts=[],
+    )
+
+    with pytest.raises(ValueError, match="was not found"):
+        pool.remove_disk_if_empty(999)
+
+
+def test_pool_remove_disk_if_empty_raises_when_disk_is_not_empty() -> None:
+    disk_a = _build_disk(1, "disk_a", 1_000)
+    artifact_a = _build_artifact(1, "artifact_a")
+    version_a1 = _build_version(1, artifact_a, 200)
+    _attach_copy_to_version_and_disk(1, version_a1, 1, disk_a)
+
+    pool = Pool(
+        disks=[disk_a],
+        artifacts=[artifact_a],
+    )
+
+    with pytest.raises(ValueError, match="is not empty"):
+        pool.remove_disk_if_empty(1)
