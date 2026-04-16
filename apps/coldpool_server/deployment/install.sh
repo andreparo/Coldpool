@@ -52,41 +52,49 @@ ask_value() {
     fi
 }
 
+run_as_root() {
+    if [[ "$(id -u)" -eq 0 ]]; then
+        "$@"
+    else
+        sudo "$@"
+    fi
+}
+
 ensure_directories() {
     echo "[INFO] Creating directories..."
-    sudo mkdir -p "$INSTALL_ROOT"
-    sudo mkdir -p "$DATA_ROOT"
-    sudo mkdir -p "$CONFIG_ROOT"
-    sudo mkdir -p "$LOG_ROOT"
+    run_as_root mkdir -p "$INSTALL_ROOT"
+    run_as_root mkdir -p "$DATA_ROOT"
+    run_as_root mkdir -p "$CONFIG_ROOT"
+    run_as_root mkdir -p "$LOG_ROOT"
 }
 
 copy_package_files() {
     echo "[INFO] Copying packaged files..."
 
-    sudo mkdir -p "$INSTALL_ROOT/backend"
-    sudo mkdir -p "$INSTALL_ROOT/frontend"
-    sudo mkdir -p "$INSTALL_ROOT/systemd"
-    sudo mkdir -p "$INSTALL_ROOT/bin"
+    run_as_root mkdir -p "$INSTALL_ROOT/backend"
+    run_as_root mkdir -p "$INSTALL_ROOT/frontend"
+    run_as_root mkdir -p "$INSTALL_ROOT/systemd"
+    run_as_root mkdir -p "$INSTALL_ROOT/bin"
 
-    sudo cp -f "$PACKAGE_ROOT/VERSION" "$INSTALL_ROOT/VERSION"
-    sudo cp -f "$PACKAGE_ROOT/LICENSE" "$INSTALL_ROOT/LICENSE"
-    sudo cp -f "$PACKAGE_ROOT/run.sh" "$INSTALL_ROOT/run.sh"
+    run_as_root cp -f "$PACKAGE_ROOT/VERSION" "$INSTALL_ROOT/VERSION"
+    run_as_root cp -f "$PACKAGE_ROOT/LICENSE" "$INSTALL_ROOT/LICENSE"
+    run_as_root cp -f "$PACKAGE_ROOT/run.sh" "$INSTALL_ROOT/run.sh"
 
     if [[ -d "$PACKAGE_ROOT/backend" ]]; then
-        sudo cp -f "$PACKAGE_ROOT"/backend/* "$INSTALL_ROOT/backend/"
+        run_as_root cp -f "$PACKAGE_ROOT"/backend/* "$INSTALL_ROOT/backend/"
     fi
 
     if [[ -d "$PACKAGE_ROOT/frontend" ]]; then
-        sudo rm -rf "$INSTALL_ROOT/frontend/dist"
-        sudo mkdir -p "$INSTALL_ROOT/frontend"
-        sudo cp -R "$PACKAGE_ROOT/frontend/dist" "$INSTALL_ROOT/frontend/dist"
+        run_as_root rm -rf "$INSTALL_ROOT/frontend/dist"
+        run_as_root mkdir -p "$INSTALL_ROOT/frontend"
+        run_as_root cp -R "$PACKAGE_ROOT/frontend/dist" "$INSTALL_ROOT/frontend/dist"
     fi
 
     if [[ -d "$PACKAGE_ROOT/systemd" ]]; then
-        sudo cp -f "$PACKAGE_ROOT"/systemd/* "$INSTALL_ROOT/systemd/" || true
+        run_as_root cp -f "$PACKAGE_ROOT"/systemd/* "$INSTALL_ROOT/systemd/" || true
     fi
 
-    sudo chmod +x "$INSTALL_ROOT/run.sh"
+    run_as_root chmod +x "$INSTALL_ROOT/run.sh"
 }
 
 install_python_backend() {
@@ -103,36 +111,44 @@ install_python_backend() {
     require_command python3
     require_command pip3
 
-    sudo python3 -m pip install --upgrade pip
-    sudo python3 -m pip install "$wheel_path"
+    python3 -m pip install --upgrade pip
+    python3 -m pip install "$wheel_path"
 }
 
 initialize_database() {
     echo "[INFO] Initializing database..."
 
     if [[ ! -f "$DATA_ROOT/coldpool_database.sqlite" ]]; then
-        sudo cp -f "$PACKAGE_ROOT/database/coldpool_database.sqlite" "$DATA_ROOT/coldpool_database.sqlite"
+        run_as_root cp -f "$PACKAGE_ROOT/database/coldpool_database.sqlite" \
+            "$DATA_ROOT/coldpool_database.sqlite"
     fi
 
-    sudo chmod 664 "$DATA_ROOT/coldpool_database.sqlite" || true
+    run_as_root chmod 664 "$DATA_ROOT/coldpool_database.sqlite" || true
 }
 
 initialize_config() {
     echo "[INFO] Initializing config..."
 
     if [[ ! -f "$CONFIG_ROOT/coldpool.env" ]]; then
-        sudo cp -f "$PACKAGE_ROOT/config/coldpool.env.example" "$CONFIG_ROOT/coldpool.env"
+        run_as_root cp -f "$PACKAGE_ROOT/config/coldpool.env.example" \
+            "$CONFIG_ROOT/coldpool.env"
     fi
 
     if [[ ! -f "$CONFIG_ROOT/coldpool.toml" ]]; then
-        sudo cp -f "$PACKAGE_ROOT/config/coldpool.toml.example" "$CONFIG_ROOT/coldpool.toml"
+        run_as_root cp -f "$PACKAGE_ROOT/config/coldpool.toml.example" \
+            "$CONFIG_ROOT/coldpool.toml"
     fi
 
-    sudo sed -i "s|^COLDPOOL_PORT=.*$|COLDPOOL_PORT=$PORT|g" "$CONFIG_ROOT/coldpool.env"
-    sudo sed -i "s|^COLDPOOL_INSTALL_ROOT=.*$|COLDPOOL_INSTALL_ROOT=$INSTALL_ROOT|g" "$CONFIG_ROOT/coldpool.env"
-    sudo sed -i "s|^COLDPOOL_DATA_ROOT=.*$|COLDPOOL_DATA_ROOT=$DATA_ROOT|g" "$CONFIG_ROOT/coldpool.env"
-    sudo sed -i "s|^COLDPOOL_CONFIG_ROOT=.*$|COLDPOOL_CONFIG_ROOT=$CONFIG_ROOT|g" "$CONFIG_ROOT/coldpool.env"
-    sudo sed -i "s|^COLDPOOL_LOG_ROOT=.*$|COLDPOOL_LOG_ROOT=$LOG_ROOT|g" "$CONFIG_ROOT/coldpool.env"
+    run_as_root sed -i "s|^COLDPOOL_PORT=.*$|COLDPOOL_PORT=$PORT|g" \
+        "$CONFIG_ROOT/coldpool.env"
+    run_as_root sed -i "s|^COLDPOOL_INSTALL_ROOT=.*$|COLDPOOL_INSTALL_ROOT=$INSTALL_ROOT|g" \
+        "$CONFIG_ROOT/coldpool.env"
+    run_as_root sed -i "s|^COLDPOOL_DATA_ROOT=.*$|COLDPOOL_DATA_ROOT=$DATA_ROOT|g" \
+        "$CONFIG_ROOT/coldpool.env"
+    run_as_root sed -i "s|^COLDPOOL_CONFIG_ROOT=.*$|COLDPOOL_CONFIG_ROOT=$CONFIG_ROOT|g" \
+        "$CONFIG_ROOT/coldpool.env"
+    run_as_root sed -i "s|^COLDPOOL_LOG_ROOT=.*$|COLDPOOL_LOG_ROOT=$LOG_ROOT|g" \
+        "$CONFIG_ROOT/coldpool.env"
 }
 
 install_systemd_service() {
@@ -140,6 +156,11 @@ install_systemd_service() {
 
     if [[ ! -f "$service_template" ]]; then
         echo "[WARN] No systemd service template found. Skipping service installation."
+        return
+    fi
+
+    if ! command -v systemctl >/dev/null 2>&1; then
+        echo "[INFO] systemctl not available. Skipping systemd service installation."
         return
     fi
 
@@ -154,10 +175,10 @@ install_systemd_service() {
     sed -i "s|__COLDPOOL_DATA_ROOT__|$DATA_ROOT|g" "$temp_service"
     sed -i "s|__COLDPOOL_LOG_ROOT__|$LOG_ROOT|g" "$temp_service"
 
-    sudo cp -f "$temp_service" /etc/systemd/system/coldpool.service
+    run_as_root cp -f "$temp_service" /etc/systemd/system/coldpool.service
     rm -f "$temp_service"
 
-    sudo systemctl daemon-reload
+    run_as_root systemctl daemon-reload
 }
 
 print_summary() {
@@ -171,20 +192,25 @@ print_summary() {
     echo "Port         : $PORT"
     echo
     echo "Run manually with:"
-    echo "  sudo $INSTALL_ROOT/run.sh"
+    echo "  $INSTALL_ROOT/run.sh"
     echo
-    echo "If systemd service was installed:"
-    echo "  sudo systemctl start coldpool"
-    echo "  sudo systemctl status coldpool"
-    echo
+    if command -v systemctl >/dev/null 2>&1; then
+        echo "If systemd service was installed:"
+        echo "  sudo systemctl start coldpool"
+        echo "  sudo systemctl status coldpool"
+        echo
+    fi
 }
 
 main() {
     print_header
 
-    require_command sudo
     require_command sed
     require_command cp
+
+    if [[ "$(id -u)" -ne 0 ]]; then
+        require_command sudo
+    fi
 
     ask_value "Install root" "$INSTALL_ROOT" INSTALL_ROOT
     ask_value "Data root" "$DATA_ROOT" DATA_ROOT
