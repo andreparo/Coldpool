@@ -46,7 +46,19 @@ class ColdpoolPageDriver:
         self.page.get_by_test_id("size-bytes-input").fill(str(size_bytes))
         self.page.get_by_test_id("checksum-input").fill(checksum)
 
-        self.page.get_by_test_id("create-artifact-version-button").click()
+        with self.page.expect_response(
+            lambda response: response.request.method == "POST"
+            and response.url.endswith("/api/artifact-versions")
+        ) as post_response_info:
+            self.page.get_by_test_id("create-artifact-version-button").click()
+
+        post_response = post_response_info.value
+        assert post_response.ok, (
+            "Create artifact version request failed with status "
+            f"{post_response.status}."
+        )
+
+        self._fail_if_form_error_is_visible()
 
     def expect_artifact_version_visible(
         self,
@@ -54,9 +66,22 @@ class ColdpoolPageDriver:
         version_label: str,
     ) -> None:
         """Check that the created artifact/version appears in the list."""
-        expect(self.page.get_by_test_id("artifact-version-list")).to_be_visible()
-        expect(self.page.get_by_text(artifact_name)).to_be_visible()
-        expect(self.page.get_by_text(f"Version {version_label}")).to_be_visible()
+        self._fail_if_form_error_is_visible()
+
+        expect(
+            self.page.get_by_text(artifact_name, exact=True)
+        ).to_be_visible(timeout=15000)
+        expect(
+            self.page.get_by_text(f"Version {version_label}", exact=True)
+        ).to_be_visible(timeout=15000)
+
+    def _fail_if_form_error_is_visible(self) -> None:
+        """Raise a clear error if the form shows a submit error."""
+        form_error = self.page.get_by_test_id("new-artifact-version-form-error")
+        if form_error.count() > 0 and form_error.is_visible():
+            raise AssertionError(
+                f"Form submission error shown in UI: {form_error.inner_text()}"
+            )
 
     @staticmethod
     def _to_datetime_local_value(value: str) -> str:
