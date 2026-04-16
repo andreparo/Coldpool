@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -13,9 +14,16 @@ class DatabaseConnector:
     @classmethod
     def _get_database_path(cls) -> Path:
         """
-        Return the database path assuming it is located at the
-        top level of the project repository.
+        Return the configured database path.
+
+        Priority:
+        1. COLDPOOL_DATABASE_PATH environment variable
+        2. Current working directory / coldpool_database.sqlite
         """
+        configured_path = os.environ.get("COLDPOOL_DATABASE_PATH")
+        if configured_path is not None and configured_path.strip():
+            return Path(configured_path).expanduser()
+
         return Path.cwd() / cls.DATABASE_FILE_NAME
 
     @classmethod
