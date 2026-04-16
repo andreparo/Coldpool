@@ -7,7 +7,7 @@ cd "$repo_root"
 dependency_image="${1:?Usage: bash ci/docker/setup/prepare_dependency_image.sh <dependency_image>}"
 
 docker build \
-    --pull \
+    --pull=false \
     -t "$dependency_image" \
     -f ci/docker/dependency-image/Dockerfile \
     .
