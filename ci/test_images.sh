@@ -43,6 +43,22 @@ for _ in $(seq 1 30); do
 done
 
 echo "[ERROR] Runtime image did not become healthy in time." >&2
+echo "=== CONTAINER STATUS ==="
+docker ps -a --filter "name=${container_name}" || true
+
+echo "=== CONTAINER INSPECT STATE ==="
+docker inspect "$container_name" --format 'Status={{.State.Status}} Running={{.State.Running}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}' || true
+
 echo "=== CONTAINER LOGS ==="
 docker logs "$container_name" || true
+
+echo "=== PROCESS LIST INSIDE CONTAINER ==="
+docker exec "$container_name" ps aux || true
+
+echo "=== LISTENING PORTS INSIDE CONTAINER ==="
+docker exec "$container_name" bash -lc 'command -v ss >/dev/null 2>&1 && ss -ltnp || netstat -ltnp || true' || true
+
+echo "=== TRY HEALTH FROM INSIDE CONTAINER ==="
+docker exec "$container_name" bash -lc 'curl -v --fail http://127.0.0.1:5000/api/health' || true
+
 exit 1
