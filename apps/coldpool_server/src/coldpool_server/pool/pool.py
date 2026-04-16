@@ -127,6 +127,75 @@ class Pool:
         if artifact_copy not in artifact_copy.artifact_version.get_copies():
             raise ValueError("Pool contains a disk copy missing from version.")
 
+    def get_disk_by_id(self, disk_id: int) -> Disk | None:
+        """Return the disk with the given id, if present."""
+        for disk in self.disks:
+            if disk.id == disk_id:
+                return disk
+        return None
+
+    def get_artifact_by_id(self, artifact_id: int) -> Artifact | None:
+        """Return the artifact with the given id, if present."""
+        for artifact in self.artifacts:
+            if artifact.id == artifact_id:
+                return artifact
+        return None
+
+    def get_version_by_id(self, version_id: int) -> ArtifactVersion | None:
+        """Return the artifact version with the given id, if present."""
+        for artifact in self.artifacts:
+            for version in artifact.get_versions():
+                if version.id == version_id:
+                    return version
+        return None
+
+    def get_copy_by_id(self, copy_id: int) -> ArtifactCopy | None:
+        """Return the artifact copy with the given id, if present."""
+        for artifact in self.artifacts:
+            for version in artifact.get_versions():
+                for artifact_copy in version.get_copies():
+                    if artifact_copy.id == copy_id:
+                        return artifact_copy
+        return None
+
+    def get_all_versions(self) -> list[ArtifactVersion]:
+        """Return all artifact versions across all artifacts."""
+        versions: list[ArtifactVersion] = []
+        for artifact in self.artifacts:
+            versions.extend(artifact.get_versions())
+        return versions
+
+    def get_all_copies(self) -> list[ArtifactCopy]:
+        """Return all artifact copies across all artifacts."""
+        copies: list[ArtifactCopy] = []
+        for version in self.get_all_versions():
+            copies.extend(version.get_copies())
+        return copies
+
+    def add_disk(self, disk: Disk) -> None:
+        """Add a new disk to the pool after validating uniqueness."""
+        if self.get_disk_by_id(disk.id) is not None:
+            raise ValueError("Pool disks must not contain duplicate ids.")
+
+        if any(existing_disk.name == disk.name for existing_disk in self.disks):
+            raise ValueError("Pool disks must not contain duplicate names.")
+
+        self.disks.append(disk)
+
+    def remove_disk_if_empty(self, disk_id: int) -> None:
+        """Remove an existing disk from the pool only if it contains no copies."""
+        for index, disk in enumerate(self.disks):
+            if disk.id != disk_id:
+                continue
+
+            if disk.get_copies():
+                raise ValueError(f"Disk with id={disk_id} is not empty.")
+
+            del self.disks[index]
+            return
+
+        raise ValueError(f"Disk with id={disk_id} was not found.")
+
     def get_total_capacity_bytes(self) -> int:
         """Return the total storage capacity across all disks."""
         return sum(disk.total_capacity_bytes for disk in self.disks)
