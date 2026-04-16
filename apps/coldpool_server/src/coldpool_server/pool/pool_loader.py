@@ -114,9 +114,10 @@ class PoolLoader:
 
         for row in version_rows:
             artifact_id = cls._row_value(row, "artifact_id", 1)
-            artifact = artifact_by_id.get(artifact_id)
-            if artifact is None:
+            artifact_or_none = artifact_by_id.get(artifact_id)
+            if artifact_or_none is None:
                 raise ValueError(f"Database contains artifact_version referencing missing artifact_id={artifact_id}.")
+            artifact = artifact_or_none
 
             expires_at_raw = cls._row_value(row, "expires_at", 6)
 
@@ -137,13 +138,15 @@ class PoolLoader:
             artifact_version_id = cls._row_value(row, "artifact_version_id", 1)
             disk_id = cls._row_value(row, "disk_id", 3)
 
-            artifact_version = version_by_id.get(artifact_version_id)
-            if artifact_version is None:
+            artifact_version_or_none = version_by_id.get(artifact_version_id)
+            if artifact_version_or_none is None:
                 raise ValueError("Database contains copy referencing missing " f"artifact_version_id={artifact_version_id}.")
+            artifact_version = artifact_version_or_none
 
-            disk = disk_by_id.get(disk_id)
-            if disk is None:
+            disk_or_none = disk_by_id.get(disk_id)
+            if disk_or_none is None:
                 raise ValueError(f"Database contains copy referencing missing disk_id={disk_id}.")
+            disk = disk_or_none
 
             artifact_copy = ArtifactCopy(
                 id=cls._row_value(row, "id", 0),
