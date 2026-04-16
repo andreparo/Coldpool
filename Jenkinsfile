@@ -200,6 +200,18 @@ pipeline {
                 }
             }
         }
+
+        stage('TEST_IMAGES') {
+            agent { label 'linux-docker' }
+
+            steps {
+                sh '''
+                    export BUILD_NUMBER="$BUILD_NUMBER"
+                    export SHORT_SHA="$SHORT_SHA"
+                    bash ci/test_images.sh
+                '''
+            }
+        }
     }
 
     post {
