@@ -14,8 +14,8 @@ class ColdpoolPageDriver:
     def open(self) -> None:
         """Open the Coldpool web page."""
         self.page.goto(f"{self.base_url}/")
-        # TODO: replace this generic title check with the real page title/text once stabilized.
-        expect(self.page).to_have_title("Coldpool")
+        expect(self.page).to_have_title("coldpool_web_app")
+        # TODO: replace this title check with the final real app title when defined.
 
     def create_new_artifact_and_first_version(
         self,
