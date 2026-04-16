@@ -69,7 +69,10 @@ export default function ArtifactVersionsPage() {
   }
 
   return (
-    <main className="artifact-versions-page">
+    <main
+      className="artifact-versions-page"
+      data-testid="artifact-versions-page"
+    >
       <div className="artifact-versions-page__top">
         <NewArtifactVersionCard
           artifactOptions={artifactOptions}
@@ -79,26 +82,43 @@ export default function ArtifactVersionsPage() {
         />
       </div>
 
-      <section className="artifact-versions-page__list-section">
+      <section
+        className="artifact-versions-page__list-section"
+        data-testid="artifact-version-list-section"
+      >
         <div className="artifact-versions-page__list-header">
-          <h2>Artifact versions</h2>
-          <p>{artifactVersions.length} version(s)</p>
+          <h2 data-testid="artifact-version-list-title">Artifact versions</h2>
+          <p data-testid="artifact-version-count">
+            {artifactVersions.length} version(s)
+          </p>
         </div>
 
         {isLoading ? (
-          <div className="artifact-versions-page__empty-state">
+          <div
+            className="artifact-versions-page__empty-state"
+            data-testid="artifact-version-list-loading"
+          >
             Loading artifact versions...
           </div>
         ) : pageError ? (
-          <div className="artifact-versions-page__empty-state page-error">
+          <div
+            className="artifact-versions-page__empty-state page-error"
+            data-testid="artifact-version-list-error"
+          >
             {pageError}
           </div>
         ) : artifactVersions.length === 0 ? (
-          <div className="artifact-versions-page__empty-state">
+          <div
+            className="artifact-versions-page__empty-state"
+            data-testid="artifact-version-list-empty"
+          >
             No artifact versions found yet.
           </div>
         ) : (
-          <div className="artifact-versions-page__list">
+          <div
+            className="artifact-versions-page__list"
+            data-testid="artifact-version-list"
+          >
             {artifactVersions.map((artifactVersion) => (
               <ArtifactVersionDisplayCard
                 key={artifactVersion.version_id}

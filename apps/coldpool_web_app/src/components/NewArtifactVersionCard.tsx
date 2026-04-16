@@ -203,16 +203,24 @@ export default function NewArtifactVersionCard({
   }
 
   return (
-    <section className="new-artifact-version-card">
+    <section
+      className="new-artifact-version-card"
+      data-testid="new-artifact-version-card"
+    >
       <div className="new-artifact-version-card__header">
-        <h1>Coldpool</h1>
+        <h1 data-testid="page-title">Coldpool</h1>
         <p>Create a new artifact version or a brand new artifact.</p>
       </div>
 
-      <form className="new-artifact-version-card__form" onSubmit={handleSubmit}>
+      <form
+        className="new-artifact-version-card__form"
+        onSubmit={handleSubmit}
+        data-testid="new-artifact-version-form"
+      >
         <div className="new-artifact-version-card__mode-row">
           <label>
             <input
+              data-testid="artifact-mode-existing"
               type="radio"
               name="artifactMode"
               value="existing"
@@ -224,6 +232,7 @@ export default function NewArtifactVersionCard({
           </label>
           <label>
             <input
+              data-testid="artifact-mode-new"
               type="radio"
               name="artifactMode"
               value="new"
@@ -239,6 +248,7 @@ export default function NewArtifactVersionCard({
           <label className="form-field">
             <span>Artifact</span>
             <select
+              data-testid="existing-artifact-select"
               value={formState.existingArtifactId}
               onChange={(event) =>
                 updateField("existingArtifactId", event.target.value)
@@ -261,6 +271,7 @@ export default function NewArtifactVersionCard({
             <label className="form-field">
               <span>Artifact name</span>
               <input
+                data-testid="new-artifact-name-input"
                 value={formState.newArtifactName}
                 onChange={(event) =>
                   updateField("newArtifactName", event.target.value)
@@ -272,6 +283,7 @@ export default function NewArtifactVersionCard({
             <label className="form-field">
               <span>Priority score</span>
               <input
+                data-testid="new-artifact-priority-score-input"
                 type="number"
                 min="0"
                 value={formState.newArtifactPriorityScore}
@@ -285,6 +297,7 @@ export default function NewArtifactVersionCard({
             <label className="form-field">
               <span>Desired copy count</span>
               <input
+                data-testid="new-artifact-desired-copy-count-input"
                 type="number"
                 min="0"
                 value={formState.newArtifactDesiredCopyCount}
@@ -298,6 +311,7 @@ export default function NewArtifactVersionCard({
             <label className="form-field">
               <span>Artifact type</span>
               <input
+                data-testid="new-artifact-type-input"
                 value={formState.newArtifactType}
                 onChange={(event) =>
                   updateField("newArtifactType", event.target.value)
@@ -309,6 +323,7 @@ export default function NewArtifactVersionCard({
             <label className="form-field">
               <span>Shelf life days</span>
               <input
+                data-testid="new-artifact-shelf-life-days-input"
                 type="number"
                 min="0"
                 value={formState.newArtifactShelfLifeDays}
@@ -325,6 +340,7 @@ export default function NewArtifactVersionCard({
           <label className="form-field">
             <span>Version label</span>
             <input
+              data-testid="version-label-input"
               value={formState.versionLabel}
               onChange={(event) =>
                 updateField("versionLabel", event.target.value)
@@ -336,6 +352,7 @@ export default function NewArtifactVersionCard({
           <label className="form-field">
             <span>Created at</span>
             <input
+              data-testid="created-at-input"
               type="datetime-local"
               value={formState.createdAt}
               onChange={(event) => updateField("createdAt", event.target.value)}
@@ -346,6 +363,7 @@ export default function NewArtifactVersionCard({
           <label className="form-field">
             <span>Size bytes</span>
             <input
+              data-testid="size-bytes-input"
               type="number"
               min="0"
               value={formState.sizeBytes}
@@ -357,6 +375,7 @@ export default function NewArtifactVersionCard({
           <label className="form-field">
             <span>Checksum</span>
             <input
+              data-testid="checksum-input"
               value={formState.checksum}
               onChange={(event) => updateField("checksum", event.target.value)}
               disabled={isSubmitting}
@@ -366,6 +385,7 @@ export default function NewArtifactVersionCard({
           <label className="form-field">
             <span>Expires at</span>
             <input
+              data-testid="expires-at-input"
               type="datetime-local"
               value={formState.expiresAt}
               onChange={(event) => updateField("expiresAt", event.target.value)}
@@ -375,11 +395,20 @@ export default function NewArtifactVersionCard({
         </div>
 
         {(localError || submitError) && (
-          <p className="form-error">{localError ?? submitError}</p>
+          <p
+            className="form-error"
+            data-testid="new-artifact-version-form-error"
+          >
+            {localError ?? submitError}
+          </p>
         )}
 
         <div className="new-artifact-version-card__actions">
-          <button type="submit" disabled={isSubmitting}>
+          <button
+            data-testid="create-artifact-version-button"
+            type="submit"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "Saving..." : "Create artifact version"}
           </button>
         </div>

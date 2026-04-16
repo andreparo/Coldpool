@@ -38,17 +38,29 @@ export default function ArtifactVersionDisplayCard({
   artifactVersion,
 }: ArtifactVersionDisplayCardProps) {
   return (
-    <article className="artifact-version-card">
+    <article
+      className="artifact-version-card"
+      data-testid={`artifact-version-card-${artifactVersion.version_id}`}
+    >
       <div className="artifact-version-card__header">
         <div>
-          <h2 className="artifact-version-card__title">
+          <h2
+            className="artifact-version-card__title"
+            data-testid={`artifact-version-card-title-${artifactVersion.version_id}`}
+          >
             {artifactVersion.artifact_name}
           </h2>
-          <p className="artifact-version-card__subtitle">
+          <p
+            className="artifact-version-card__subtitle"
+            data-testid={`artifact-version-card-version-label-${artifactVersion.version_id}`}
+          >
             Version {artifactVersion.version_label ?? "—"}
           </p>
         </div>
-        <span className="artifact-version-card__badge">
+        <span
+          className="artifact-version-card__badge"
+          data-testid={`artifact-version-card-size-${artifactVersion.version_id}`}
+        >
           {formatBytes(artifactVersion.size_bytes)}
         </span>
       </div>
@@ -56,23 +68,43 @@ export default function ArtifactVersionDisplayCard({
       <dl className="artifact-version-card__details">
         <div>
           <dt>Artifact ID</dt>
-          <dd>{artifactVersion.artifact_id}</dd>
+          <dd
+            data-testid={`artifact-version-card-artifact-id-${artifactVersion.version_id}`}
+          >
+            {artifactVersion.artifact_id}
+          </dd>
         </div>
         <div>
           <dt>Version ID</dt>
-          <dd>{artifactVersion.version_id}</dd>
+          <dd
+            data-testid={`artifact-version-card-version-id-${artifactVersion.version_id}`}
+          >
+            {artifactVersion.version_id}
+          </dd>
         </div>
         <div>
           <dt>Created</dt>
-          <dd>{formatDateTime(artifactVersion.created_at)}</dd>
+          <dd
+            data-testid={`artifact-version-card-created-at-${artifactVersion.version_id}`}
+          >
+            {formatDateTime(artifactVersion.created_at)}
+          </dd>
         </div>
         <div>
           <dt>Expires</dt>
-          <dd>{formatDateTime(artifactVersion.expires_at)}</dd>
+          <dd
+            data-testid={`artifact-version-card-expires-at-${artifactVersion.version_id}`}
+          >
+            {formatDateTime(artifactVersion.expires_at)}
+          </dd>
         </div>
         <div className="artifact-version-card__full-width">
           <dt>Checksum</dt>
-          <dd>{artifactVersion.checksum ?? "—"}</dd>
+          <dd
+            data-testid={`artifact-version-card-checksum-${artifactVersion.version_id}`}
+          >
+            {artifactVersion.checksum ?? "—"}
+          </dd>
         </div>
       </dl>
     </article>
