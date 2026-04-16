@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-VERSION="${1:-dev}"
+VERSION="${1:?Usage: bash ci/build/package_release.sh <version> <arch_label>}"
 ARCH_LABEL="${2:-linux-x86_64}"
 
 PACKAGE_NAME="coldpool-${VERSION}-${ARCH_LABEL}"
@@ -36,8 +36,8 @@ mkdir -p "$PACKAGE_ROOT/systemd"
 cp "$REPO_ROOT/LICENSE" "$PACKAGE_ROOT/LICENSE"
 printf '%s\n' "$VERSION" > "$PACKAGE_ROOT/VERSION"
 
-cp "$REPO_ROOT/apps/coldpool_server/deployment/install.sh" "$PACKAGE_ROOT/install.sh"
-cp "$REPO_ROOT/apps/coldpool_server/deployment/run.sh" "$PACKAGE_ROOT/run.sh"
+cp "$BACKEND_APP_ROOT/deployment/install.sh" "$PACKAGE_ROOT/install.sh"
+cp "$BACKEND_APP_ROOT/deployment/run.sh" "$PACKAGE_ROOT/run.sh"
 
 cp "$BACKEND_APP_ROOT"/dist/*.whl "$PACKAGE_ROOT/backend/"
 cp -R "$FRONTEND_APP_ROOT/dist" "$PACKAGE_ROOT/frontend/dist"

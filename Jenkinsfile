@@ -165,6 +165,26 @@ pipeline {
                 }
             }
         }
+
+        stage('BUILD') {
+            agent { label 'linux-docker' }
+
+            steps {
+                sh '''
+                    docker run --rm \
+                      -e VERSION="$VERSION" \
+                      -w /workspace \
+                      "$COMMIT_IMAGE" \
+                      bash ci/build.sh
+                '''
+            }
+
+            post {
+                success {
+                    archiveArtifacts artifacts: 'apps/coldpool_server/dist/*.tar.gz', fingerprint: true
+                }
+            }
+        }
     }
 
     post {

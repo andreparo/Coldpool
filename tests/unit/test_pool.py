@@ -397,7 +397,6 @@ def test_pool_get_version_by_id_returns_matching_version() -> None:
     artifact_a = _build_artifact(1, "artifact_a")
     artifact_b = _build_artifact(2, "artifact_b")
 
-    version_a1 = _build_version(1, artifact_a, 200)
     _build_version(2, artifact_a, 300)
     version_b1 = _build_version(3, artifact_b, 400)
 
