@@ -93,6 +93,7 @@ pipeline {
                     steps {
                         sh '''
                             docker run --rm \
+                              -v "$WORKSPACE":/workspace \
                               -w /workspace \
                               "$COMMIT_IMAGE" \
                               bash ci/structure.sh
@@ -106,6 +107,7 @@ pipeline {
                     steps {
                         sh '''
                             docker run --rm \
+                              -v "$WORKSPACE":/workspace \
                               -w /workspace \
                               "$COMMIT_IMAGE" \
                               bash ci/format.sh
@@ -119,6 +121,7 @@ pipeline {
                     steps {
                         sh '''
                             docker run --rm \
+                              -v "$WORKSPACE":/workspace \
                               -w /workspace \
                               "$COMMIT_IMAGE" \
                               bash ci/lint_python.sh
@@ -138,6 +141,7 @@ pipeline {
                             docker run --rm \
                               -e ESLINT_CACHE_FILE=/ci-cache/eslint/.eslintcache \
                               -e TSC_BUILDINFO_FILE=/ci-cache/tsc/tsconfig.app.tsbuildinfo \
+                              -v "$WORKSPACE":/workspace \
                               -v /mnt/1000E/jenkins-agent/cache/eslint:/ci-cache/eslint \
                               -v /mnt/1000E/jenkins-agent/cache/tsc:/ci-cache/tsc \
                               -w /workspace \
@@ -157,6 +161,7 @@ pipeline {
                     steps {
                         sh '''
                             docker run --rm \
+                              -v "$WORKSPACE":/workspace \
                               -w /workspace \
                               "$COMMIT_IMAGE" \
                               bash ci/unit.sh
@@ -173,6 +178,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                       -e VERSION="$VERSION" \
+                      -v "$WORKSPACE":/workspace \
                       -w /workspace \
                       "$COMMIT_IMAGE" \
                       bash ci/build.sh
