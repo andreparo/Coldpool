@@ -247,7 +247,44 @@ pipeline {
             agent { label 'linux-docker' }
 
             steps {
-                echo 'Acceptance stage placeholder.'
+                sh '''
+                    ACCEPTANCE_CONTAINER_NAME="coldpool-runtime-acceptance-$BUILD_NUMBER"
+                    ACCEPTANCE_PORT="15001"
+
+                    docker rm -f "$ACCEPTANCE_CONTAINER_NAME" >/dev/null 2>&1 || true
+
+                    docker run -d \
+                      --name "$ACCEPTANCE_CONTAINER_NAME" \
+                      -p "${ACCEPTANCE_PORT}:5000" \
+                      "$RUNTIME_IMAGE"
+
+                    for _ in $(seq 1 30); do
+                        if curl --fail --silent "http://127.0.0.1:${ACCEPTANCE_PORT}/api/health" >/dev/null; then
+                            break
+                        fi
+                        sleep 1
+                    done
+
+                    curl --fail --silent "http://127.0.0.1:${ACCEPTANCE_PORT}/api/health" >/dev/null
+
+                    docker run --rm \
+                      -e COLDPOOL_ACCEPTANCE_BASE_URL="http://host.docker.internal:${ACCEPTANCE_PORT}" \
+                      -v "$WORKSPACE":/workspace \
+                      -w /workspace \
+                      --add-host=host.docker.internal:host-gateway \
+                      "$COMMIT_IMAGE" \
+                      bash ci/acceptance.sh
+
+                    docker rm -f "$ACCEPTANCE_CONTAINER_NAME"
+                '''
+            }
+
+            post {
+                always {
+                    sh '''
+                        docker rm -f "coldpool-runtime-acceptance-$BUILD_NUMBER" >/dev/null 2>&1 || true
+                    '''
+                }
             }
         }
 
@@ -332,6 +369,7 @@ Use Jenkins Abort only if this run should be interrupted.
             node('linux-docker') {
                 sh '''
                     docker rm -f "coldpool-runtime-smoke-$BUILD_NUMBER" || true
+                    docker rm -f "coldpool-runtime-acceptance-$BUILD_NUMBER" || true
                     docker rm -f "coldpool-runtime-manual-$BUILD_NUMBER" || true
                     docker image rm -f "$COMMIT_IMAGE" || true
                 '''
