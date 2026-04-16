@@ -16,6 +16,7 @@ BACKEND_APP_ROOT="$REPO_ROOT/apps/coldpool_server"
 
 SQLITE_OUTPUT_PATH="$BACKEND_APP_ROOT/out/coldpool_database.sqlite"
 CONFIG_OUTPUT_DIR="$BACKEND_APP_ROOT/out/config"
+TARBALL_PATH="$DIST_DIR/${PACKAGE_NAME}.tar.gz"
 
 rm -rf "$WORK_DIR"
 mkdir -p "$PACKAGE_ROOT"
@@ -54,7 +55,16 @@ cp "$BACKEND_APP_ROOT/deployment/systemd/coldpool.service" "$PACKAGE_ROOT/system
 chmod +x "$PACKAGE_ROOT/install.sh"
 chmod +x "$PACKAGE_ROOT/run.sh"
 
-tar -C "$WORK_DIR" -czf "$DIST_DIR/${PACKAGE_NAME}.tar.gz" "$PACKAGE_NAME"
+rm -f "$TARBALL_PATH"
+tar -C "$WORK_DIR" -czf "$TARBALL_PATH" "$PACKAGE_NAME"
+
+if [[ ! -f "$TARBALL_PATH" ]]; then
+    echo "[ERROR] Release tarball was not created: $TARBALL_PATH" >&2
+    exit 1
+fi
 
 echo "[OK] Release package created:"
-echo "  $DIST_DIR/${PACKAGE_NAME}.tar.gz"
+echo "  $TARBALL_PATH"
+
+echo "=== DIST CONTENTS ==="
+ls -l "$DIST_DIR"
