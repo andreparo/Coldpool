@@ -53,9 +53,10 @@ class ColdpoolPageDriver:
             self.page.get_by_test_id("create-artifact-version-button").click()
 
         post_response = post_response_info.value
+        response_text = post_response.text()
         assert post_response.ok, (
             "Create artifact version request failed with status "
-            f"{post_response.status}."
+            f"{post_response.status}. Response body: {response_text}"
         )
 
         self._fail_if_form_error_is_visible()

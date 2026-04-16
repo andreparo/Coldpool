@@ -248,15 +248,17 @@ pipeline {
 
             steps {
                 sh '''
+                    set -euo pipefail
+
                     ACCEPTANCE_CONTAINER_NAME="coldpool-runtime-acceptance-$BUILD_NUMBER"
                     ACCEPTANCE_PORT="15001"
 
                     docker rm -f "$ACCEPTANCE_CONTAINER_NAME" >/dev/null 2>&1 || true
 
                     docker run -d \
-                      --name "$ACCEPTANCE_CONTAINER_NAME" \
-                      -p "${ACCEPTANCE_PORT}:5000" \
-                      "$RUNTIME_IMAGE"
+                    --name "$ACCEPTANCE_CONTAINER_NAME" \
+                    -p "${ACCEPTANCE_PORT}:5000" \
+                    "$RUNTIME_IMAGE"
 
                     for _ in $(seq 1 30); do
                         if curl --fail --silent "http://127.0.0.1:${ACCEPTANCE_PORT}/api/health" >/dev/null; then
@@ -267,13 +269,22 @@ pipeline {
 
                     curl --fail --silent "http://127.0.0.1:${ACCEPTANCE_PORT}/api/health" >/dev/null
 
-                    docker run --rm \
-                      -e COLDPOOL_ACCEPTANCE_BASE_URL="http://host.docker.internal:${ACCEPTANCE_PORT}" \
-                      -v "$WORKSPACE":/workspace \
-                      -w /workspace \
-                      --add-host=host.docker.internal:host-gateway \
-                      "$COMMIT_IMAGE" \
-                      bash ci/acceptance.sh
+                    if ! docker run --rm \
+                    -e COLDPOOL_ACCEPTANCE_BASE_URL="http://host.docker.internal:${ACCEPTANCE_PORT}" \
+                    -v "$WORKSPACE":/workspace \
+                    -w /workspace \
+                    --add-host=host.docker.internal:host-gateway \
+                    "$COMMIT_IMAGE" \
+                    bash ci/acceptance.sh
+                    then
+                        echo "=== ACCEPTANCE CONTAINER LOGS ==="
+                        docker logs "$ACCEPTANCE_CONTAINER_NAME" || true
+
+                        echo "=== ACCEPTANCE CONTAINER /api/artifact-versions RESPONSE CHECK ==="
+                        curl -i "http://127.0.0.1:${ACCEPTANCE_PORT}/api/artifact-versions" || true
+
+                        exit 1
+                    fi
 
                     docker rm -f "$ACCEPTANCE_CONTAINER_NAME"
                 '''
