@@ -250,6 +250,8 @@ pipeline {
                 sh '''
                     export BUILD_NUMBER="$BUILD_NUMBER"
                     export RUNTIME_IMAGE="$RUNTIME_IMAGE"
+                    export COLDPOOL_MANUAL_PORT=18180
+                    export COLDPOOL_MANUAL_HOST=sunflower-power
                     bash ci/manual_setup.sh
                 '''
 
@@ -270,12 +272,16 @@ pipeline {
                     if (!data['MANUAL_PORT']) {
                         error('MANUAL_PORT missing from ci_manual.env')
                     }
+                    if (!data['MANUAL_HOST']) {
+                        error('MANUAL_HOST missing from ci_manual.env')
+                    }
                     if (!data['MANUAL_URL']) {
                         error('MANUAL_URL missing from ci_manual.env')
                     }
 
                     env.MANUAL_CONTAINER_NAME = data['MANUAL_CONTAINER_NAME']
                     env.MANUAL_PORT = data['MANUAL_PORT']
+                    env.MANUAL_HOST = data['MANUAL_HOST']
                     env.MANUAL_URL = data['MANUAL_URL']
                 }
 

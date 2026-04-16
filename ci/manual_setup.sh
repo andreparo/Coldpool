@@ -6,7 +6,8 @@ cd "$repo_root"
 
 runtime_image="${RUNTIME_IMAGE:?RUNTIME_IMAGE environment variable is required}"
 build_number="${BUILD_NUMBER:?BUILD_NUMBER environment variable is required}"
-manual_port="${COLDPOOL_MANUAL_PORT:-18080}"
+manual_port="${COLDPOOL_MANUAL_PORT:-18180}"
+manual_host="${COLDPOOL_MANUAL_HOST:-sunflower-power}"
 
 container_name="coldpool-runtime-manual-${build_number}"
 
@@ -28,9 +29,10 @@ for _ in $(seq 1 30); do
         cat > ci_manual.env <<EOF
 MANUAL_CONTAINER_NAME=$container_name
 MANUAL_PORT=$manual_port
-MANUAL_URL=http://127.0.0.1:${manual_port}
+MANUAL_HOST=$manual_host
+MANUAL_URL=http://${manual_host}:${manual_port}
 EOF
-        echo "[OK] Manual container is ready at http://127.0.0.1:${manual_port}"
+        echo "[OK] Manual container is ready at http://${manual_host}:${manual_port}"
         exit 0
     fi
     sleep 1
